@@ -36,6 +36,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // PayPal SDK (phiên bản mẫu, kiểm tra phiên bản mới nhất nếu cần)
     implementation 'com.paypal.sdk:rest-api-sdk:1.14.0'
+    // https://mvnrepository.com/artifact/com.cloudinary/cloudinary-http44
+    implementation group: 'com.cloudinary', name: 'cloudinary-http44', version: '1.39.0'
 }
 
 tasks.named('test') {
