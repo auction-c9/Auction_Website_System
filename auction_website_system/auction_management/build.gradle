@@ -49,6 +49,8 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    // PayPal SDK (phiên bản mẫu, kiểm tra phiên bản mới nhất nếu cần)
+    implementation 'com.paypal.sdk:rest-api-sdk:1.14.0'
     // https://mvnrepository.com/artifact/com.cloudinary/cloudinary-http44
     implementation group: 'com.cloudinary', name: 'cloudinary-http44', version: '1.39.0'
 }
