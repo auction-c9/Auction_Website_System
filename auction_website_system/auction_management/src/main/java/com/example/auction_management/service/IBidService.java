@@ -1,4 +1,6 @@
 package com.example.auction_management.service;
 
-public interface IBidService {
+import com.example.auction_management.model.Bid;
+
+public interface IBidService extends IService<Bid> {
 }
