@@ -36,7 +36,7 @@ public class Payment {
 
     @NotNull(message = "Phương thức thanh toán không được để trống")
     @Enumerated(EnumType.STRING)
-    @Column(name = "method", columnDefinition = "ENUM('credit_card','paypal','bank_transfer') DEFAULT 'credit_card'")
+    @Column(name = "method", columnDefinition = "ENUM('paypal','vnpay') DEFAULT 'paypal'")
     private PaymentMethod method;
 
     @Enumerated(EnumType.STRING)
@@ -44,7 +44,7 @@ public class Payment {
     private PaymentStatus status;
 
     public enum PaymentMethod {
-        credit_card, paypal, bank_transfer
+        paypal, vnpay
     }
 
     public enum PaymentStatus {
