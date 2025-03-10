@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - AuctionFUN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 120px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .google-btn {
+            background: #fff;
+            color: #5f6368;
+            border: 2px solid #e2e8f0;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .google-btn:hover {
+            background: #f8fafc;
+            transform: translateY(-2px);
+        }
+
+        .google-btn img {
+            width: 20px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            color: #a0aec0;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        .action-btns {
+            margin-top: 30px;
+        }
+
+        .login-btn {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #4a5568;
+        }
+
+        .signup-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <div class="logo">
+        <!-- Thêm logo của bạn tại đây -->
+        <img src="logo.png" alt="AuctionFUN Logo">
+    </div>
+
+    <h1>Đăng nhập tài khoản</h1>
+
+    <form id="loginForm">
+        <div class="input-group">
+            <input type="email" name="username" placeholder="username" required>
+        </div>
+
+        <div class="input-group">
+            <input type="password" name="password" placeholder="Mật khẩu" required>
+        </div>
+
+        <button type="submit" class="login-btn">Đăng nhập</button>
+    </form>
+
+    <div class="divider">Hoặc tiếp tục với</div>
+
+    <button class="google-btn" onclick="handleGoogleLogin()">
+        <img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google Logo">
+        Đăng nhập bằng Google
+    </button>
+
+    <div class="signup-link">
+        Chưa có tài khoản? <a href="#">Đăng ký ngay</a>
+    </div>
+</div>
+
+<script>
+    function handleGoogleLogin() {
+        // Xử lý đăng nhập Google tại đây
+        window.location.href = '/auth/google';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Xử lý đăng nhập thông thường
+        console.log('Đăng nhập bằng email');
+    });
+</script>
+</body>
+</html>

@@ -20,7 +20,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id", columnDefinition = "INT")
-    private Long paymentId;
+    private Integer paymentId;
 
     @ManyToOne
     @JoinColumn(name = "customer_id", columnDefinition = "INT")

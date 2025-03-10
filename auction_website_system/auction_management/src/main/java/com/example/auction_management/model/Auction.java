@@ -22,7 +22,7 @@ public class Auction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "auction_id", columnDefinition = "INT")
-    private Long auctionId;
+    private Integer auctionId;
 
     @NotNull(message = "Sản phẩm không được để trống")
     @ManyToOne

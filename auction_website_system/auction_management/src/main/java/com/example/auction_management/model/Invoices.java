@@ -20,7 +20,7 @@ public class Invoices {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "invoice_id", columnDefinition = "INT")
-    private Long invoiceId;
+    private Integer invoiceId;
 
     @NotNull(message = "Đơn hàng không được để trống")
     @OneToOne

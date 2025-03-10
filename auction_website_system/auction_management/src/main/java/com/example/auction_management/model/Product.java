@@ -18,7 +18,7 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id", columnDefinition = "INT")
-    private Long productId;
+    private Integer productId;
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL")

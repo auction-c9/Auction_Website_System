@@ -20,7 +20,7 @@ public class Bid {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "bid_id", columnDefinition = "INT")
-    private Long bidId;
+    private Integer bidId;
 
     @NotNull(message = "Phiên đấu giá không được để trống")
     @ManyToOne
