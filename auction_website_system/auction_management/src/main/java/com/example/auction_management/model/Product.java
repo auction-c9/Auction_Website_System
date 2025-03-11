@@ -1,5 +1,9 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +19,8 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "products")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "productId")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +31,7 @@ public class Product {
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL")
     private String name;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", columnDefinition = "INT")
     private Category category;
 
@@ -33,7 +39,6 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    // Đồng nhất ràng buộc: Giá khởi điểm phải lớn hơn 0
     @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
     @Column(name = "base_price", columnDefinition = "DECIMAL(10,2) NOT NULL")
     private BigDecimal basePrice;
@@ -42,6 +47,7 @@ public class Product {
     private String image;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @JsonIgnore // Hoặc bạn có thể sử dụng @JsonIdentityInfo nếu cần giữ thông tin nhưng tránh vòng lặp
     private List<Image> images;
 
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")

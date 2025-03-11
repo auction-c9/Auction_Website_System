@@ -1,5 +1,8 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
@@ -10,6 +13,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -18,6 +22,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @Table(name = "auctions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "auctionId")
 public class Auction {
 
     @Id
@@ -26,8 +32,9 @@ public class Auction {
     private Integer auctionId;
 
     @NotNull(message = "Sản phẩm không được để trống")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Product product;
 
     @NotNull(message = "Thời gian bắt đầu không được để trống")
@@ -51,7 +58,7 @@ public class Auction {
     private BigDecimal bidStep;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "ENUM('pending', 'active', 'completed', 'canceled') DEFAULT 'pending'")
+    @Column(name = "status", nullable = false)
     private AuctionStatus status = AuctionStatus.pending;
 
     @CreationTimestamp
