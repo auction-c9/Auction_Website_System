@@ -49,5 +49,12 @@ public class AuthController {
 
         return ResponseEntity.ok("Tài khoản hợp lệ");
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<Account> account = accountService.findAccountByUsername(username);
+        return ResponseEntity.ok(account.orElseThrow(() -> new RuntimeException("User not found")));
+    }
 }
 
