@@ -16,7 +16,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auctions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class AuctionController {
 
     private final AuctionService auctionService;
@@ -55,9 +55,6 @@ public class AuctionController {
         return ResponseEntity.ok(Map.of("message", "Xóa phiên đấu giá thành công"));
     }
 
-    // ----------- Các API mở rộng ------------
-
-    // Lấy danh sách phiên đấu giá theo trạng thái
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getAuctionsByStatus(@PathVariable String status) {
         try {
