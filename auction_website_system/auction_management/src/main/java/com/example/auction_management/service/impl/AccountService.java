@@ -25,7 +25,6 @@ public class AccountService implements IAccountService {
     @Autowired
     private RoleRepository roleRepository;
 
-
     @Override
     public Optional<Account> findAccountByUsername(String username) {
         return accountRepository.findByUsername(username);
