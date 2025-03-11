@@ -5,6 +5,7 @@ import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
 import com.example.auction_management.service.impl.AuctionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,20 +23,30 @@ public class AuctionController {
 
     @GetMapping
     public ResponseEntity<List<Auction>> getAllAuctions() {
-        return ResponseEntity.ok(auctionService.findAll());
+        try {
+            List<Auction> auctions = auctionService.findAll();
+            return ResponseEntity.ok(auctions);
+        } catch (Exception e) {
+            // Bạn có thể ghi log exception ở đây để kiểm tra lỗi chi tiết
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getAuctionById(@PathVariable Integer id) {
         Optional<Auction> auction = auctionService.findById(id);
-        return auction.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.badRequest().body((Auction) Map.of("message", "Không tìm thấy phiên đấu giá")));
+        if (auction.isPresent()) {
+            return ResponseEntity.ok(auction.get());
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy phiên đấu giá"));
+        }
     }
+
 
     @PostMapping
     public ResponseEntity<Auction> createAuction(@RequestBody Auction auction) {
         Auction savedAuction = auctionService.save(auction);
-        return ResponseEntity.status(201).body(savedAuction);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedAuction);
     }
 
     @DeleteMapping("/{id}")
@@ -53,7 +64,7 @@ public class AuctionController {
             AuctionStatus auctionStatus = AuctionStatus.valueOf(status.toUpperCase());
             return ResponseEntity.ok(auctionService.findByStatus(auctionStatus));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Trạng thái không hợp lệ")); // ✅ Trả về message rõ ràng hơn
+            return ResponseEntity.badRequest().body(Map.of("message", "Trạng thái không hợp lệ"));
         }
     }
 
