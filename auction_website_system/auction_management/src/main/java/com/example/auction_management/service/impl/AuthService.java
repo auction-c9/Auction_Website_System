@@ -7,6 +7,7 @@ import com.example.auction_management.util.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,13 +16,15 @@ public class AuthService {
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthService(AuthenticationManager authenticationManager, CustomUserDetailsService customUserDetailsService,
-                       JwtTokenProvider jwtTokenProvider, AccountRepository accountRepository) {
+                       JwtTokenProvider jwtTokenProvider, AccountRepository accountRepository, PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.customUserDetailsService = customUserDetailsService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public JwtResponse login(LoginRequest loginRequest) {
