@@ -1,7 +1,7 @@
 package com.example.auction_management.controller;
 
 import com.example.auction_management.Service.IAccountService;
-import com.example.auction_management.Service.implement.AuthService;
+import com.example.auction_management.service.implement.AuthService;
 import com.example.auction_management.dto.LoginRequest;
 import com.example.auction_management.model.Account;
 import org.springframework.beans.factory.annotation.Autowired;

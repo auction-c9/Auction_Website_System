@@ -1,4 +1,4 @@
-package com.example.auction_management.Service.implement;
+package com.example.auction_management.service.implement;
 
 import com.example.auction_management.dto.JwtResponse;
 import com.example.auction_management.dto.LoginRequest;
@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
     private final AuthenticationManager authenticationManager;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final com.example.auction_management.Service.implement.CustomUserDetailsService customUserDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AccountRepository accountRepository;
 
-    public AuthService(AuthenticationManager authenticationManager, CustomUserDetailsService customUserDetailsService,
+    public AuthService(AuthenticationManager authenticationManager, com.example.auction_management.Service.implement.CustomUserDetailsService customUserDetailsService,
                        JwtTokenProvider jwtTokenProvider, AccountRepository accountRepository) {
         this.authenticationManager = authenticationManager;
         this.customUserDetailsService = customUserDetailsService;
