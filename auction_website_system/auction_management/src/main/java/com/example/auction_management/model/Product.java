@@ -1,5 +1,7 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "products")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +36,6 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    // Đồng nhất ràng buộc: Giá khởi điểm phải lớn hơn 0
     @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
     @Column(name = "base_price", columnDefinition = "DECIMAL(10,2) NOT NULL")
     private BigDecimal basePrice;
@@ -42,6 +44,7 @@ public class Product {
     private String image;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @JsonIgnore // Thêm annotation này để bỏ qua trường images khi serialize
     private List<Image> images;
 
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
