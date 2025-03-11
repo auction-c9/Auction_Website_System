@@ -20,8 +20,10 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories() {
         List<Category> categories = categoryService.findAll();
+        System.out.println("Categories: " + categories); // Debug xem dữ liệu có đúng không
         return ResponseEntity.ok(categories);
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Category> getCategoryById(@PathVariable Integer id) {
