@@ -19,42 +19,47 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "auctions")
 public class Auction {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "auction_id", columnDefinition = "INT")
-    private Long auctionId;
+    @Column(name = "auction_id")
+    private Integer auctionId;
 
     @NotNull(message = "Sản phẩm không được để trống")
-    @ManyToOne
-    @JoinColumn(name = "product_id", columnDefinition = "INT NOT NULL")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @NotNull(message = "Thời gian bắt đầu không được để trống")
     @Future(message = "Thời gian bắt đầu phải trong tương lai")
-    @Column(name = "auction_start_time", columnDefinition = "DATETIME NOT NULL")
+    @Column(name = "auction_start_time", nullable = false)
     private LocalDateTime auctionStartTime;
 
+    @NotNull(message = "Thời gian kết thúc không được để trống")
     @Future(message = "Thời gian kết thúc phải trong tương lai")
-    @Column(name = "auction_end_time", columnDefinition = "DATETIME NOT NULL")
+    @Column(name = "auction_end_time", nullable = false)
     private LocalDateTime auctionEndTime;
 
-    @DecimalMin(value = "0.00", message = "Giá hiện tại không được âm")
-    @Column(name = "current_price", columnDefinition = "DECIMAL(10,2)")
+    @NotNull(message = "Giá hiện tại không được để trống")
+    @DecimalMin(value = "0.00", inclusive = false, message = "Giá hiện tại phải lớn hơn 0")
+    @Column(name = "current_price", precision = 12, scale = 2, nullable = false)
     private BigDecimal currentPrice;
 
+    @NotNull(message = "Bước giá không được để trống")
     @DecimalMin(value = "0.01", message = "Bước giá phải lớn hơn 0")
-    @Column(name = "bid_step", columnDefinition = "DECIMAL(10,2) NOT NULL")
+    @Column(name = "bid_step", precision = 12, scale = 2, nullable = false)
     private BigDecimal bidStep;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "ENUM('pending','active','completed','canceled') DEFAULT 'pending'")
-    private AuctionStatus status;
+    @Column(name = "status", nullable = false, columnDefinition = "ENUM('pending', 'active', 'completed', 'canceled') DEFAULT 'pending'")
+    private AuctionStatus status = AuctionStatus.pending;
 
     @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public enum AuctionStatus {

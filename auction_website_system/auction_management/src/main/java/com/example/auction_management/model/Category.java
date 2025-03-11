@@ -15,7 +15,7 @@ public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id", columnDefinition = "INT")
-    private Long categoryId;
+    private Integer categoryId;
 
     @NotBlank(message = "Tên danh mục không được để trống")
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL UNIQUE")
