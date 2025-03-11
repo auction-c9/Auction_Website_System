@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -18,7 +19,7 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id", columnDefinition = "INT")
-    private Long productId;
+    private Integer productId;
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL")
@@ -32,12 +33,16 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @DecimalMin(value = "0.00", message = "Giá khởi điểm phải lớn hơn 0")
+    // Đồng nhất ràng buộc: Giá khởi điểm phải lớn hơn 0
+    @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
     @Column(name = "base_price", columnDefinition = "DECIMAL(10,2) NOT NULL")
     private BigDecimal basePrice;
 
-    @Column(name = "image", columnDefinition = "VARCHAR(255)")
+    @Column(name = "image", columnDefinition = "LONGTEXT")
     private String image;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    private List<Image> images;
 
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;

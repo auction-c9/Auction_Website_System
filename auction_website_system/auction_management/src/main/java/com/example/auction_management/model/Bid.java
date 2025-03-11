@@ -17,29 +17,31 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "bids")
 public class Bid {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "bid_id", columnDefinition = "INT")
-    private Long bidId;
+    @Column(name = "bid_id")
+    private Integer bidId;
 
     @NotNull(message = "Phiên đấu giá không được để trống")
-    @ManyToOne
-    @JoinColumn(name = "auction_id", columnDefinition = "INT NOT NULL")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "auction_id", nullable = false)
     private Auction auction;
 
     @NotNull(message = "Khách hàng không được để trống")
-    @ManyToOne
-    @JoinColumn(name = "customer_id", columnDefinition = "INT NOT NULL")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @NotNull(message = "Giá đấu không được để trống")
     @DecimalMin(value = "0.01", message = "Giá đấu phải lớn hơn 0")
-    @Column(name = "bid_amount", columnDefinition = "DECIMAL(10,2) NOT NULL")
+    @Column(name = "bid_amount", precision = 12, scale = 2, nullable = false)
     private BigDecimal bidAmount;
 
     @CreationTimestamp
-    @Column(name = "bid_time", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "bid_time", updatable = false)
     private LocalDateTime bidTime;
 
-    @Column(name = "is_winner", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean isWinner;
+    @Column(name = "is_winner", nullable = false)
+    private Boolean isWinner = false; // Set mặc định FALSE
 }
