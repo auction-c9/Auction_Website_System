@@ -35,6 +35,7 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleException(Exception ex) {
         return new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi hệ thống: " + ex.getMessage());
     }
+
     @ExceptionHandler({
             BidService.AuctionNotFoundException.class,
             BidService.CustomerNotFoundException.class,
