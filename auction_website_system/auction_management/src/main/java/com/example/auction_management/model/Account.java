@@ -30,6 +30,10 @@ public class Account {
     @Column(name = "status", columnDefinition = "ENUM('active', 'inactive') DEFAULT 'active'")
     private AccountStatus status;
 
+    @ManyToOne
+    @JoinColumn(name = "id_role", nullable = false) // Đảm bảo nullable = false nếu cần
+    private Role role;
+
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private Customer customer;
 
