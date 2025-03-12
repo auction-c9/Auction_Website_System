@@ -56,5 +56,4 @@ public class Customer {
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;
 
-
 }

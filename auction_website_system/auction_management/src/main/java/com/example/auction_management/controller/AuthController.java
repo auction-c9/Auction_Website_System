@@ -59,8 +59,10 @@ public class AuthController {
     }
 
     @GetMapping("/register-question")
-    public ResponseEntity<Map<String, String>> getRegistrationForm() {
-        return ResponseEntity.ok(captchaService.generateSimpleMathQuestion());
+    public ResponseEntity<Map<String, String>> getRegistrationForm(HttpSession session) {
+        Map<String, String> captcha = captchaService.generateSimpleMathQuestion();
+        session.setAttribute("captchaAnswer", captcha.get("answer"));
+        return ResponseEntity.ok(Map.of("question", captcha.get("question")));
     }
 
     @PostMapping("/register")
@@ -68,8 +70,12 @@ public class AuthController {
             @Validated @RequestBody AccountDto accountDto,
             HttpSession session
     ) {
+        System.out.println("Session attributes: " + session.getAttributeNames());
         // Kiểm tra captcha
         String storedAnswer = (String) session.getAttribute("captchaAnswer");
+        if (storedAnswer == null) {
+            throw new RuntimeException("Không tìm thấy captcha trong session");
+        }
 
         authService.register(accountDto, storedAnswer);
         session.removeAttribute("captchaAnswer");
