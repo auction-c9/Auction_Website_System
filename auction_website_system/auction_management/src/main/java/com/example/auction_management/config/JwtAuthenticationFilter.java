@@ -13,14 +13,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+
 @Service
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService customUserDetailsService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.customUserDetailsService = customUserDetailsService;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Các endpoint không cần xác thực:
+        return path.startsWith("/api/auth/") ||
+                path.startsWith("/api/auctions/") ||
+                path.startsWith("/api/categories/") ||
+                path.startsWith("/api/products/");
     }
 
     @Override
