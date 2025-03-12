@@ -15,7 +15,7 @@ public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "account_id", columnDefinition = "INT")
-    private Long accountId;
+    private Integer accountId;
 
     @NotBlank(message = "Username không được để trống")
     @Column(name = "username", columnDefinition = "VARCHAR(255) NOT NULL UNIQUE")
@@ -29,6 +29,9 @@ public class Account {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "ENUM('active', 'inactive') DEFAULT 'active'")
     private AccountStatus status;
+
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+    private Customer customer;
 
     public enum AccountStatus {
         active, inactive
