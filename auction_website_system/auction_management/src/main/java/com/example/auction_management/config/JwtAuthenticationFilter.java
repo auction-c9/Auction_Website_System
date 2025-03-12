@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 @Service
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -41,9 +42,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = getJwtFromRequest(request);
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String username = jwtTokenProvider.getUsernameFromToken(token);
+            Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); }});
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
         filterChain.doFilter(request, response);
