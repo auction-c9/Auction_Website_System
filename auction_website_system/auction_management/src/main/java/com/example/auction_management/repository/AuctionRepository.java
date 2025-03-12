@@ -19,4 +19,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     // Tìm các phiên đang diễn ra
     @Query("SELECT a FROM Auction a WHERE a.auctionStartTime <= :now AND a.auctionEndTime >= :now AND a.status = 'active'")
     List<Auction> findOngoingAuctions(LocalDateTime now);
+
+//    List<Auction> findByCustomerId(Integer customerId);
+
 }
