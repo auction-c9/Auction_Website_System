@@ -1,6 +1,7 @@
 package com.example.auction_management.service.impl;
 
 import com.example.auction_management.dto.BidDTO;
+import com.example.auction_management.dto.BidResponseDTO;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Bid;
 import com.example.auction_management.model.Customer;
@@ -47,15 +48,16 @@ public class BidService implements IBidService {
 
     @Override
     @Transactional
-    public Bid placeBid(BidDTO bidDTO) {
-        // Lấy phiên đấu giá theo ID
+    public BidResponseDTO placeBid(BidDTO bidDTO) {
+        // Lấy thông tin phiên đấu giá theo ID
         Auction auction = auctionRepository.findById(bidDTO.getAuctionId())
                 .orElseThrow(() -> new AuctionNotFoundException("Phiên đấu giá không tồn tại!"));
-        // Lấy khách hàng theo ID
+
+        // Lấy thông tin khách hàng theo ID
         Customer customer = customerRepository.findById(bidDTO.getCustomerId())
                 .orElseThrow(() -> new CustomerNotFoundException("Khách hàng không tồn tại!"));
 
-        // Kiểm tra trạng thái phiên đấu giá
+        // Kiểm tra phiên đấu giá còn hoạt động
         if (!auction.getStatus().equals(Auction.AuctionStatus.active)) {
             throw new AuctionNotActiveException("Phiên đấu giá này không còn hoạt động!");
         }
@@ -66,60 +68,61 @@ public class BidService implements IBidService {
             throw new AuctionEndedException("Phiên đấu giá đã kết thúc!");
         }
 
-        // Kiểm tra giá thầu có hợp lệ hay không
+        // Kiểm tra giá thầu có hợp lệ không
         BigDecimal minNextBid = auction.getCurrentPrice().add(auction.getBidStep());
         if (bidDTO.getBidAmount().compareTo(minNextBid) < 0) {
-            throw new BidAmountTooLowException("Giá đấu phải tối thiểu: " + minNextBid);
+            throw new BidAmountTooLowException("Giá đấu phải từ " + minNextBid + " trở lên!");
         }
+
+        // Reset trạng thái các bid cũ về isWinner = false
+        List<Bid> auctionBids = bidRepository.findByAuction(auction);
+        auctionBids.forEach(b -> b.setIsWinner(false));
+        bidRepository.saveAll(auctionBids);
 
         // Cập nhật giá hiện tại của phiên đấu giá
         auction.setCurrentPrice(bidDTO.getBidAmount());
         auctionRepository.save(auction);
 
-        // Reset trạng thái các bid cũ
-        List<Bid> auctionBids = bidRepository.findByAuction(auction);
-        for (Bid b : auctionBids) {
-            b.setIsWinner(false);
-        }
-        bidRepository.saveAll(auctionBids);
-
-        // Tạo và lưu bid mới
+        // Tạo bid mới
         Bid bid = new Bid();
         bid.setAuction(auction);
         bid.setCustomer(customer);
         bid.setBidAmount(bidDTO.getBidAmount());
         bid.setIsWinner(true);
-        return bidRepository.save(bid);
+        bid.setBidTime(now);
+
+        Bid savedBid = bidRepository.save(bid);
+
+        // Tạo DTO trả về đơn giản
+        return new BidResponseDTO(
+                savedBid.getBidId(),
+                auction.getAuctionId(),
+                customer.getCustomerId(),
+                savedBid.getBidAmount(),
+                savedBid.getBidTime(),
+                savedBid.getIsWinner()
+        );
     }
 
-    // --- Custom Exceptions cho nghiệp vụ đấu giá ---
+
+    // --- Custom Exceptions ---
     public static class AuctionNotFoundException extends RuntimeException {
-        public AuctionNotFoundException(String message) {
-            super(message);
-        }
+        public AuctionNotFoundException(String message) { super(message); }
     }
 
     public static class CustomerNotFoundException extends RuntimeException {
-        public CustomerNotFoundException(String message) {
-            super(message);
-        }
+        public CustomerNotFoundException(String message) { super(message); }
     }
 
     public static class AuctionNotActiveException extends RuntimeException {
-        public AuctionNotActiveException(String message) {
-            super(message);
-        }
+        public AuctionNotActiveException(String message) { super(message); }
     }
 
     public static class AuctionEndedException extends RuntimeException {
-        public AuctionEndedException(String message) {
-            super(message);
-        }
+        public AuctionEndedException(String message) { super(message); }
     }
 
     public static class BidAmountTooLowException extends RuntimeException {
-        public BidAmountTooLowException(String message) {
-            super(message);
-        }
+        public BidAmountTooLowException(String message) { super(message); }
     }
 }

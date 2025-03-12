@@ -65,7 +65,7 @@ public class SecurityConfig {
                                 "/api/categories/**",   // Cho phép truy cập công khai cho danh mục
                                 "/api/products/**"
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/bids/**").authenticated()
                 )
                 .sessionManagement(sess -> sess
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
