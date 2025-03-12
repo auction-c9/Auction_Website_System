@@ -2,8 +2,11 @@ package com.example.auction_management.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 public class JwtResponse {
     private String token;
