@@ -100,6 +100,7 @@ public class ProductService implements IProductService {
             product = productRepository.save(product);
 
             // Khởi tạo danh sách ảnh nếu chưa có
+            // Khởi tạo danh sách ảnh nếu chưa có
             if (product.getImages() == null) {
                 product.setImages(new ArrayList<>());
             }
