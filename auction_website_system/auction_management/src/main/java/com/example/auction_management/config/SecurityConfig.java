@@ -63,8 +63,6 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auctions/**",    // Cho phép truy cập công khai cho phiên đấu giá
                                 "/api/categories/**",   // Cho phép truy cập công khai cho danh mục
-                                "/api/auth/login",
-                                "/api/auth/register",
                                 "/api/products/**"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -81,10 +79,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         // Cho phép origin đúng với địa chỉ frontend của bạn
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://yourdomain.com"));
         // Thêm OPTIONS vào allowed methods để hỗ trợ preflight requests
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
+        config.setExposedHeaders(Arrays.asList("Authorization"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
