@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Component
@@ -19,12 +21,15 @@ public class JwtTokenProvider {
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
-    public String generateToken(String username) {
+    public String generateToken(String username, Integer customerId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("customerId", customerId);
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512) // ✅ Dùng Key thay vì String
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
@@ -47,5 +52,14 @@ public class JwtTokenProvider {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    public Integer getCustomerIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return (Integer) claims.get("customerId");
     }
 }

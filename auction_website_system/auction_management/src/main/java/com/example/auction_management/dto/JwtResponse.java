@@ -11,9 +11,11 @@ import lombok.Setter;
 public class JwtResponse {
     private String token;
     private String type = "Bearer";
+    private Integer customerId;
 
-    public JwtResponse(String token) {
+    public JwtResponse(String token,Integer customerId) {
         this.token = token;
         this.type = "Bearer";
+        this.customerId = customerId;
     }
 }
