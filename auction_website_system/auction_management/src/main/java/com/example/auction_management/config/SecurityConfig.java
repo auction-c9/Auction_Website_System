@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/api/auctions/**",    // Cho phép truy cập công khai cho phiên đấu giá
                                 "/api/categories/**",   // Cho phép truy cập công khai cho danh mục
                                 "/api/products/**"
+
                         ).permitAll()
                         .requestMatchers("/api/bids/**").authenticated()
                 )
