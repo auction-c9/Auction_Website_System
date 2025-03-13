@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 @Service
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -39,25 +40,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = getJwtFromRequest(request);
-        System.out.println("🚀 Token from request: " + token);
-        System.out.println("Authorization Header: " + request.getHeader("Authorization"));
-
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String username = jwtTokenProvider.getUsernameFromToken(token);
-            System.out.println("✅ User authenticated: " + username);
-
+            Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); }});
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        } else {
-            System.out.println("❌ Token invalid or not provided.");
         }
-
         filterChain.doFilter(request, response);
     }
-
-
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
