@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ErrorResponse handleBadCredentialsException(BadCredentialsException ex) {
-        log.warn("BadCredentialsException: {}", ex.getMessage());
+        log.error("BadCredentialsException:", ex);
         return ErrorResponse.builder()
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .message("Tên đăng nhập hoặc mật khẩu không đúng")
@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("AccessDeniedException: {}", ex.getMessage());
+        log.error("AccessDeniedException:", ex);
         return ErrorResponse.builder()
                 .statusCode(HttpStatus.FORBIDDEN.value())
                 .message("Bạn không có quyền truy cập tài nguyên này")
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProductCreationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleProductCreationException(ProductCreationException ex) {
-        log.error("ProductCreationException: {}", ex.getMessage(), ex);
+        log.error("ProductCreationException:", ex);
         return ErrorResponse.builder()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBidExceptions(RuntimeException ex) {
-        log.warn("Bid related exception: {}", ex.getMessage());
+        log.error("Bid related exception:", ex);
         return ErrorResponse.builder()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
     // Xử lý IllegalArgumentException
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("IllegalArgumentException: {}", ex.getMessage());
+        log.error("IllegalArgumentException:", ex);
         ErrorResponse response = ErrorResponse.builder()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .message(ex.getMessage())
@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
     // Xử lý NullPointerException
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
-        log.error("NullPointerException: {}", ex.getMessage(), ex);
+        log.error("NullPointerException:", ex);
         ErrorResponse response = ErrorResponse.builder()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .message("Lỗi: Giá trị không được null")
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error -> {
-            log.warn("Validation failed on field: {}, reason: {}", error.getField(), error.getDefaultMessage());
+            log.error("Validation failed on field: {} - Reason: {}", error.getField(), error.getDefaultMessage(), ex);
             errors.put(error.getField(), error.getDefaultMessage());
         });
 
@@ -123,7 +123,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleAllUncaughtException(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        log.error("Unhandled exception:", ex);
         return ErrorResponse.builder()
                 .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message("Lỗi hệ thống: " + ex.getMessage())
