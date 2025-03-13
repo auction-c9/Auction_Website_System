@@ -23,12 +23,14 @@ public class ProductDTO {
 
     private String description;
 
-    @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
+    @DecimalMin(value = "0.01", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
+    @NotNull(message = "Giá khởi điểm không được để trống")
     private BigDecimal basePrice;
 
     @NotNull(message = "Ảnh đại diện sản phẩm không được để trống")
     private MultipartFile imageFile;
 
+    @NotEmpty(message = "Danh sách ảnh chi tiết không được để trống")
     private List<@NotNull(message = "Ảnh chi tiết không được để trống") MultipartFile> imageFiles;
 
     @NotNull(message = "Thời gian bắt đầu đấu giá không được để trống")
@@ -43,6 +45,6 @@ public class ProductDTO {
     @NotNull(message = "Bước giá không được để trống")
     private BigDecimal bidStep;
 
-
+    @Pattern(regexp = "pending|active|ended", message = "Trạng thái không hợp lệ (pending, active, ended)")
     private String status = "pending";
 }

@@ -13,6 +13,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BidUpdateDTO {
     private Integer auctionId;
-    private BigDecimal currentPrice;
+    private BigDecimal bidAmount;
     private Integer customerId;
 }
