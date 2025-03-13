@@ -4,6 +4,7 @@ import com.example.auction_management.service.impl.CustomUserDetailsService;
 import com.example.auction_management.util.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -56,22 +57,29 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Sử dụng CORS đã cấu hình
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        // Cho phép truy cập không cần đăng nhập:
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/auctions/**",    // Cho phép truy cập công khai cho phiên đấu giá
-                                "/api/categories/**",   // Cho phép truy cập công khai cho danh mục
-                                "/api/products/**",
                                 "/api/auth/register-question",
-                                "/ws/**"
+                                "/api/auctions/**",
+                                "/api/categories/**"
                         ).permitAll()
-                        .requestMatchers("/api/bids/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
+                        // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
+                        .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
+
+                        // Chỉ cho phép người dùng có ROLE_USER truy cập /api/bids/**
+                        // (vì ta đã gán ROLE_USER ở CustomUserDetailsService)
+                        .requestMatchers("/api/bids/**").hasRole("USER")
+
+                        // Bất kỳ request nào khác cũng cần authenticated
+                        .anyRequest().authenticated()
                 )
-                .sessionManagement(sess -> sess
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -80,9 +88,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Cho phép origin đúng với địa chỉ frontend của bạn
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://yourdomain.com"));
-        // Thêm OPTIONS vào allowed methods để hỗ trợ preflight requests
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://yourdomain.com"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization"));
