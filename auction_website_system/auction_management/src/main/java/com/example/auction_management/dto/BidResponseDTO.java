@@ -16,7 +16,7 @@ public class BidResponseDTO {
     private Integer bidId;
     private Integer auctionId;
     private Integer customerId;
-    private BigDecimal currentPrice;
+    private BigDecimal bidAmount;
     private LocalDateTime bidTime;
     private Boolean isWinner;
 }

@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
@@ -38,19 +39,15 @@ public class ProductController {
 
     // Thêm mới sản phẩm
     @PostMapping("/create")
-    public ResponseEntity<Product> createProduct(@Valid @ModelAttribute ProductDTO productDTO) {
-        logger.info("Received ProductDTO: name={}, categoryId={}, basePrice={}, start={}, end={}, bidStep={}, status={}",
-                productDTO.getName(),
-                productDTO.getCategoryId(),
-                productDTO.getBasePrice(),
-                productDTO.getAuctionStartTime(),
-                productDTO.getAuctionEndTime(),
-                productDTO.getBidStep(),
-                productDTO.getStatus());
-
+    public ResponseEntity<?> createProduct(@Valid @ModelAttribute ProductDTO productDTO) {
         Product product = productService.createProduct(productDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "message", "Tạo sản phẩm thành công",
+                "productId", product.getProductId(),
+                "productName", product.getName()
+        ));
     }
+
 
     // Xóa mềm sản phẩm
     @DeleteMapping("/{id}")
