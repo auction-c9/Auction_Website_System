@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+// Product.java
 @Getter
 @Setter
 @NoArgsConstructor
@@ -48,7 +49,11 @@ public class Product {
     @JsonManagedReference
     private List<Image> images = new ArrayList<>();
 
-
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;
+
+    // Thêm quan hệ với Account (người đăng tin)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", columnDefinition = "INT")
+    private Account account;
 }

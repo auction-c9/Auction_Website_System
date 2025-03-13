@@ -23,7 +23,7 @@ public class ProductDTO {
 
     private String description;
 
-    @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
+    @DecimalMin(value = "0.01", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
     private BigDecimal basePrice;
 
     @NotNull(message = "Ảnh đại diện sản phẩm không được để trống")

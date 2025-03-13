@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
@@ -63,10 +64,15 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auctions/**",    // Cho phép truy cập công khai cho phiên đấu giá
                                 "/api/categories/**",   // Cho phép truy cập công khai cho danh mục
-                                "/api/products/**",
                                 "/api/auth/register-question"
                         ).permitAll()
-                        .requestMatchers("/api/bids/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        // Yêu cầu đăng nhập đối với POST (ví dụ: đăng tin)
+                        .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
+                        .requestMatchers(
+                                "/api/bids/**"
+                        ).authenticated()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
