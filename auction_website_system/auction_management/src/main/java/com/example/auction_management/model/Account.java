@@ -31,7 +31,7 @@ public class Account {
     private AccountStatus status;
 
     @ManyToOne
-    @JoinColumn(name = "id_role", nullable = false) // Đảm bảo nullable = false nếu cần
+    @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)

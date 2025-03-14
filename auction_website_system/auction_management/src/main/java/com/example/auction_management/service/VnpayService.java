@@ -1,87 +1,129 @@
 package com.example.auction_management.service;
 
+import com.example.auction_management.config.VnpayConfig;
+import com.example.auction_management.model.Auction;
+import com.example.auction_management.model.Customer;
+import com.example.auction_management.model.Transaction;
+import com.example.auction_management.repository.AuctionRepository;
+import com.example.auction_management.repository.CustomerRepository;
+import com.example.auction_management.repository.TransactionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class VnpayService {
-    private static final String VNP_TMNCODE = "A3GXRGWV";
-    public static final String VNP_HASHSECRET = "CKF45LLG32RI8JVIWPXWVBZ1U7COEU8M";
-    private static final String VNP_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-    public static String generatePaymentUrl(String returnUrl, double amount, String orderInfo, String orderId) {
-        Map<String, String> params = new HashMap<>();
-        params.put("vnp_Version", "2.1.0");
-        params.put("vnp_TmnCode", VNP_TMNCODE);
-        params.put("vnp_Amount", String.valueOf((int) (amount * 100)));
-        params.put("vnp_Command", "pay");
-        params.put("vnp_CreateDate", getCurrentDate());
-        params.put("vnp_CurrCode", "VND");
-        params.put("vnp_IpAddr", "127.0.0.1");
-        params.put("vnp_Locale", "vn");
-        params.put("vnp_OrderInfo", orderInfo);
-        params.put("vnp_OrderType", "billpayment");
-        params.put("vnp_ReturnUrl", returnUrl);
-        params.put("vnp_TxnRef", orderId);
+    @Autowired
+    private TransactionRepository transactionRepository;
 
-        // Sắp xếp tham số theo thứ tự A-Z
-        List<String> fieldNames = new ArrayList<>(params.keySet());
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private AuctionRepository auctionRepository;
+
+    public String createPaymentUrl(Integer customerId, Integer auctionId, Double amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Số tiền phải lớn hơn 0");
+        }
+        String vnpTxnRef = UUID.randomUUID().toString(); // Mã giao dịch VNPay (Duy nhất)
+        String transactionId = UUID.randomUUID().toString();
+
+        String vnp_Version = "2.1.0";
+        String vnp_Command = "pay";
+        String orderType = "other";
+        long amountForVNPay = Math.round(amount * 100); // VNPay yêu cầu số tiền nhân 100
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new RuntimeException("Auction not found"));
+
+        // Lưu giao dịch với trạng thái PENDING và set vnpTxnRef
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(transactionId); // ID nội bộ
+        transaction.setVnpTxnRef(vnpTxnRef); // Mã giao dịch VNPay
+        transaction.setCustomer(customer);
+        transaction.setAuction(auction);
+        transaction.setAmount(amount);
+        transaction.setPaymentMethod("VNPAY");
+        transaction.setStatus("PENDING");
+        transactionRepository.save(transaction);
+
+        String vnp_TmnCode = VnpayConfig.vnp_TmnCode;
+        String vnp_IpAddr = "127.0.0.1";
+
+        Map<String, String> vnp_Params = new HashMap<>();
+        vnp_Params.put("vnp_Version", vnp_Version);
+        vnp_Params.put("vnp_Command", vnp_Command);
+        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
+        vnp_Params.put("vnp_Amount", String.valueOf(amountForVNPay));
+        vnp_Params.put("vnp_CurrCode", "VND");
+        vnp_Params.put("vnp_TxnRef", vnpTxnRef);
+        vnp_Params.put("vnp_OrderInfo", "Thanh toán đặt cọc tài khoản: " + customerId);
+        vnp_Params.put("vnp_OrderType", orderType);
+        vnp_Params.put("vnp_Locale", "vn");
+        vnp_Params.put("vnp_ReturnUrl", VnpayConfig.vnp_ReturnUrl);
+        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+
+        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        vnp_Params.put("vnp_CreateDate", formatter.format(cld.getTime()));
+
+        cld.add(Calendar.MINUTE, 15);
+        vnp_Params.put("vnp_ExpireDate", formatter.format(cld.getTime()));
+
+        List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
-
+        StringBuilder hashData = new StringBuilder();
         StringBuilder query = new StringBuilder();
         for (String fieldName : fieldNames) {
-            String value = params.get(fieldName);
-            if (value != null && !value.isEmpty()) {
-                try {
-                    query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8.toString()))
-                            .append("=")
-                            .append(URLEncoder.encode(value, StandardCharsets.UTF_8.toString()))
-                            .append("&");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            String fieldValue = vnp_Params.get(fieldName);
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                hashData.append(fieldName).append('=')
+                        .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII)).append('&');
+                query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII))
+                        .append('=')
+                        .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII)).append('&');
             }
         }
-
-        String queryUrl = query.substring(0, query.length() - 1);
-        String secureHash = hmacSHA512(queryUrl, VNP_HASHSECRET);
-        return VNP_URL + "?" + queryUrl + "&vnp_SecureHash=" + secureHash;
-    }
-
-    private static String getCurrentDate() {
-        Calendar calendar = Calendar.getInstance();
-        return String.format("%1$tY%1$tm%1$td%1$tH%1$tM%1$tS", calendar);
-    }
-
-    public static String hmacSHA512(String data, String secretKey) {
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-            Mac mac = Mac.getInstance("HmacSHA512");
-            mac.init(secretKeySpec);
-            byte[] hashBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-
-            // Chuyển bytes thành hex thủ công (thay thế DatatypeConverter)
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                hexString.append(String.format("%02X", b)); // "%02X" để đảm bảo luôn có 2 chữ số
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể tạo HMAC-SHA512", e);
+        if (query.length() > 0) {
+            query.setLength(query.length() - 1);
         }
+        if (hashData.length() > 0) {
+            hashData.setLength(hashData.length() - 1);
+        }
+
+        String vnp_SecureHash = VnpayConfig.hmacSHA512(VnpayConfig.secretKey, hashData.toString());
+        query.append("&vnp_SecureHash=").append(vnp_SecureHash);
+
+        return VnpayConfig.vnp_PayUrl + "?" + query;
     }
 
-    public String createQueryString(Map<String, String> params) {
-        return params.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining("&"));
+    public ResponseEntity<String> handleVnPayReturn(String responseCode, String vnp_TxnRef) {
+        if("00".equals(responseCode)) {
+            Transaction transaction = transactionRepository.findByVnpTxnRef(vnp_TxnRef);
+            if (transaction != null) {
+                transaction.setStatus("SUCCESS");
+                transactionRepository.save(transaction);
+                return ResponseEntity.ok("Thanh toán thành công!");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giao dịch không tồn tại!");
+            }
+        } else {
+            Transaction transaction = transactionRepository.findByVnpTxnRef(vnp_TxnRef);
+            if (transaction != null) {
+                transaction.setStatus("FAILED");
+                transactionRepository.save(transaction);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Thanh toán thất bại! Mã lỗi: " + responseCode);
+        }
     }
 }
-
