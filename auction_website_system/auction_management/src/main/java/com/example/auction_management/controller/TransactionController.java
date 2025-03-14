@@ -10,11 +10,13 @@ import com.example.auction_management.repository.TransactionRepository;
 import com.example.auction_management.service.PaypalService;
 import com.example.auction_management.service.VnpayService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -51,6 +53,7 @@ public class TransactionController {
         Customer customer = customerOpt.get();
         Auction auction = auctionOpt.get();
         String redirectUrl = "";
+        String generatedTxnId = null;
 
         if ("VNPAY".equalsIgnoreCase(dto.getPaymentMethod())) {
             // Gọi service VNPAY và để service tự tạo transaction
@@ -60,13 +63,18 @@ public class TransactionController {
                         auction.getAuctionId(),
                         dto.getAmount()
                 );
+                Transaction txn = transactionRepository.findFirstByCustomerAndAuctionAndAmountAndStatusOrderByCreatedAtDesc(
+                        customer, auction, dto.getAmount(), "PENDING"
+                );
+                if (txn != null) {
+                    generatedTxnId = txn.getTransactionId();
+                }
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(Collections.singletonMap("message", e.getMessage()));
             }
-        }
-        else if ("PAYPAL".equalsIgnoreCase(dto.getPaymentMethod())) {
+        } else if ("PAYPAL".equalsIgnoreCase(dto.getPaymentMethod())) {
             // Logic cho PayPal (giữ nguyên nếu service PayPal chưa xử lý transaction)
-            String generatedTxnId = payPalService.generateTransactionId();
+            generatedTxnId = payPalService.generateTransactionId();
             redirectUrl = payPalService.createPayment(
                     customer.getCustomerId(),
                     auction.getAuctionId(),
@@ -84,12 +92,18 @@ public class TransactionController {
             transaction.setTransactionId(generatedTxnId);
             transaction.setCreatedAt(LocalDateTime.now());
             transactionRepository.save(transaction);
-        }
-        else {
+            Map<String, String> result = new HashMap<>();
+            result.put("redirectUrl", redirectUrl);
+            result.put("transactionId", generatedTxnId);
+            return ResponseEntity.ok(result);
+        } else {
             return ResponseEntity.badRequest().body(Collections.singletonMap("message", "Phương thức thanh toán không hợp lệ!"));
         }
+        Map<String, String> result = new HashMap<>();
+        result.put("redirectUrl", redirectUrl);
+        result.put("transactionId", generatedTxnId);
+        return ResponseEntity.ok(result);
 
-        return ResponseEntity.ok(Collections.singletonMap("redirectUrl", redirectUrl));
     }
 
     // Xử lý phản hồi từ VNPay
@@ -109,4 +123,21 @@ public class TransactionController {
         String result = payPalService.handlePayPalReturn(transactionId, paymentId, payerId);
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/status/{transactionId}")
+    public ResponseEntity<Map<String, Object>> getTransactionStatus(@PathVariable String transactionId) {
+        Optional<Transaction> txnOpt = transactionRepository.findByTransactionId(transactionId);
+        if (!txnOpt.isPresent()) {
+            System.out.println("[DEBUG] Không tìm thấy giao dịch với transactionId: " + transactionId);
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Collections.singletonMap("message", "Transaction not found"));
+        }
+        Transaction txn = txnOpt.get();
+        System.out.println("[DEBUG] Transaction được lấy: " + txn.getTransactionId() + ", status: " + txn.getStatus());
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", txn.getStatus());
+        return ResponseEntity.ok(response);
+    }
+
 }

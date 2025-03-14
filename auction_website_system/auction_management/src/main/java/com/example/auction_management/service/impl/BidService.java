@@ -8,6 +8,7 @@ import com.example.auction_management.model.Customer;
 import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.repository.BidRepository;
 import com.example.auction_management.repository.CustomerRepository;
+import com.example.auction_management.repository.TransactionRepository;
 import com.example.auction_management.service.IBidService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,8 @@ public class BidService implements IBidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
+    private final TransactionRepository transactionRepository;
+
 
     @Override
     public List<Bid> findAll() {
@@ -75,6 +78,14 @@ public class BidService implements IBidService {
         if (bidDTO.getBidAmount().compareTo(minNextBid) < 0) {
             throw new BidAmountTooLowException("Giá đấu phải từ " + minNextBid + " trở lên!");
         }
+
+        // Kiểm tra xem khách hàng đã đặt cọc thành công chưa (Transaction với trạng thái SUCCESS)
+        boolean hasDeposited = transactionRepository.existsByCustomerAndAuctionAndStatus(
+                customer, auction, "SUCCESS");
+        if (!hasDeposited) {
+            throw new DepositNotPaidException("Bạn cần đặt cọc trước khi đấu giá!");
+        }
+
 
         // Reset trạng thái các bid cũ về isWinner = false
         List<Bid> auctionBids = bidRepository.findByAuction(auction);
@@ -128,4 +139,11 @@ public class BidService implements IBidService {
     public static class BidAmountTooLowException extends RuntimeException {
         public BidAmountTooLowException(String message) { super(message); }
     }
+
+    public static class DepositNotPaidException extends RuntimeException {
+        public DepositNotPaidException(String message) {
+            super(message);
+        }
+    }
+
 }

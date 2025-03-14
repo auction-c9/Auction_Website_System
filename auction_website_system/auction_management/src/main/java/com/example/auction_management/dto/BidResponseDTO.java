@@ -1,5 +1,6 @@
 package com.example.auction_management.dto;
 
+import com.example.auction_management.model.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,5 @@ public class BidResponseDTO {
     private BigDecimal bidAmount;
     private LocalDateTime bidTime;
     private Boolean isWinner;
+
 }
