@@ -65,7 +65,10 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/register-question",
                                 "/api/auctions/**",
-                                "/api/categories/**"
+                                "/api/categories/**",
+                                "/api/transactions/paypal-return",    // Thêm endpoint callback PayPal
+                                "/api/transactions/paypal-cancel",      // Thêm endpoint hủy thanh toán PayPal (nếu có)
+                                "/api/transactions/vnpay-return"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
 
