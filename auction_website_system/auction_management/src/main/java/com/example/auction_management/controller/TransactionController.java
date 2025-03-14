@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -77,9 +78,11 @@ public class TransactionController {
             transaction.setCustomer(customer);
             transaction.setAuction(auction);
             transaction.setAmount(dto.getAmount());
+            transaction.setTransactionType(dto.getTransactionType());
             transaction.setPaymentMethod(dto.getPaymentMethod());
             transaction.setStatus("PENDING");
             transaction.setTransactionId(generatedTxnId);
+            transaction.setCreatedAt(LocalDateTime.now());
             transactionRepository.save(transaction);
         }
         else {

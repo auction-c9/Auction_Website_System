@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -53,8 +54,10 @@ public class VnpayService {
         transaction.setCustomer(customer);
         transaction.setAuction(auction);
         transaction.setAmount(amount);
+        transaction.setTransactionType("DEPOSIT");
         transaction.setPaymentMethod("VNPAY");
         transaction.setStatus("PENDING");
+        transaction.setCreatedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
 
         String vnp_TmnCode = VnpayConfig.vnp_TmnCode;
