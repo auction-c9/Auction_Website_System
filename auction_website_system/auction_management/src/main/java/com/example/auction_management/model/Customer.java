@@ -1,5 +1,7 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -13,6 +15,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @Entity(name = "customers")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "customerId")
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

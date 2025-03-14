@@ -5,24 +5,19 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.auction_management.config.CloudinaryConfig;
 import com.example.auction_management.dto.ProductDTO;
 import com.example.auction_management.exception.ProductCreationException;
-import com.example.auction_management.model.Auction;
-import com.example.auction_management.model.Category;
-import com.example.auction_management.model.Image;
-import com.example.auction_management.model.Product;
-import com.example.auction_management.repository.AuctionRepository;
-import com.example.auction_management.repository.CategoryRepository;
-import com.example.auction_management.repository.ImageRepository;
-import com.example.auction_management.repository.ProductRepository;
+import com.example.auction_management.model.*;
+import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IProductService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,7 +39,10 @@ public class ProductService implements IProductService {
     @Autowired
     private AuctionRepository auctionRepository;
 
-    private Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
+    @Autowired
+    private AccountRepository accountRepository;
+
+    private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
     @Override
     public List<Product> findAll() {
@@ -65,80 +63,79 @@ public class ProductService implements IProductService {
 
     @Override
     public void deleteById(Integer id) {
-        Optional<Product> productOpt = productRepository.findById(id);
-        productOpt.ifPresent(product -> {
+        productRepository.findById(id).ifPresent(product -> {
             product.setIsDeleted(true);
             productRepository.save(product);
         });
     }
 
-    // Tạo sản phẩm đấu giá mới từ ProductDTO với quản lý giao dịch và xử lý rollback
     @Transactional
+    @Override
     public Product createProduct(ProductDTO dto) {
         try {
-            logger.info("Bắt đầu tạo sản phẩm với tên: {}", dto.getName());
-            // Kiểm tra và lấy Category
-            Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new ProductCreationException("Không tìm thấy danh mục với id: " + dto.getCategoryId()));
+            Account account = getAuthenticatedAccount();
+            Category category = getCategory(dto.getCategoryId());
 
-            // Tạo Product
-            Product product = new Product();
-            product.setName(dto.getName());
-            product.setCategory(category);
-            product.setDescription(dto.getDescription());
-            product.setBasePrice(dto.getBasePrice());
-            product.setIsDeleted(false);
-
-            // Upload ảnh đại diện
-            if (dto.getImageFile() != null && !dto.getImageFile().isEmpty()) {
-                String mainImageUrl = uploadFile(dto.getImageFile());
-                product.setImage(mainImageUrl);
-                logger.info("Upload ảnh đại diện thành công.");
-            }
-
-            // Lưu Product trước để lấy ID
+            Product product = buildProduct(dto, account, category);
             product = productRepository.save(product);
 
-            // Khởi tạo danh sách ảnh nếu chưa có
-            if (product.getImages() == null) {
-                product.setImages(new ArrayList<>());
-            }
-
-            // Upload danh sách ảnh chi tiết
-            if (dto.getImageFiles() != null && !dto.getImageFiles().isEmpty()) {
-                for (MultipartFile file : dto.getImageFiles()) {
-                    if (!file.isEmpty()) {
-                        String imageUrl = uploadFile(file);
-                        Image image = new Image();
-                        image.setImageUrl(imageUrl);
-                        image.setProduct(product);
-                        imageRepository.save(image);
-                        // Thêm ảnh vào danh sách của Product
-                        product.getImages().add(image);
-                    }
-                }
-                logger.info("Upload ảnh chi tiết thành công.");
-            }
-
-            // Tạo Auction
-            Auction auction = new Auction();
-            auction.setProduct(product);
-            auction.setAuctionStartTime(dto.getAuctionStartTime());
-            auction.setAuctionEndTime(dto.getAuctionEndTime());
-            auction.setBidStep(dto.getBidStep());
-            auction.setCurrentPrice(dto.getBasePrice()); // Giá hiện tại ban đầu bằng giá khởi điểm
-            auction.setStatus(Auction.AuctionStatus.valueOf(dto.getStatus().toLowerCase()));
-            auctionRepository.save(auction);
-            logger.info("Tạo phiên đấu giá thành công cho sản phẩm: {}", product.getProductId());
+            uploadDetailImages(dto.getImageFiles(), product);
+            createAuction(dto, product);
 
             return product;
-        } catch (IOException e) {
-            logger.error("Lỗi upload ảnh: {}", e.getMessage());
-            throw new ProductCreationException("Lỗi khi upload ảnh lên Cloudinary: " + e.getMessage(), e);
+        } catch (IOException | IllegalArgumentException e) {
+            logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);
+            throw new ProductCreationException("Lỗi tạo sản phẩm: " + e.getMessage(), e);
         }
     }
 
-    // Tách riêng logic upload file
+    private Account getAuthenticatedAccount() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return accountRepository.findByUsername(username)
+                .orElseThrow(() -> new ProductCreationException("Không tìm thấy tài khoản với username: " + username));
+    }
+
+    private Category getCategory(Integer categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ProductCreationException("Không tìm thấy danh mục với id: " + categoryId));
+    }
+
+    private Product buildProduct(ProductDTO dto, Account account, Category category) throws IOException {
+        Product product = new Product();
+        product.setName(dto.getName());
+        product.setCategory(category);
+        product.setDescription(dto.getDescription());
+        product.setBasePrice(dto.getBasePrice());
+        product.setIsDeleted(false);
+        product.setAccount(account);
+        product.setImage(uploadFile(dto.getImageFile()));
+        return product;
+    }
+
+    private void uploadDetailImages(List<MultipartFile> imageFiles, Product product) throws IOException {
+        for (MultipartFile file : imageFiles) {
+            if (!file.isEmpty()) {
+                String imageUrl = uploadFile(file);
+                Image image = new Image();
+                image.setImageUrl(imageUrl);
+                image.setProduct(product);
+                imageRepository.save(image);
+                product.getImages().add(image);
+            }
+        }
+    }
+
+    private void createAuction(ProductDTO dto, Product product) {
+        Auction auction = new Auction();
+        auction.setProduct(product);
+        auction.setAuctionStartTime(dto.getAuctionStartTime());
+        auction.setAuctionEndTime(dto.getAuctionEndTime());
+        auction.setBidStep(dto.getBidStep());
+        auction.setCurrentPrice(dto.getBasePrice());
+        auction.setStatus(Auction.AuctionStatus.valueOf(dto.getStatus()));
+        auctionRepository.save(auction);
+    }
+
     private String uploadFile(MultipartFile file) throws IOException {
         Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
         return uploadResult.get("secure_url").toString();

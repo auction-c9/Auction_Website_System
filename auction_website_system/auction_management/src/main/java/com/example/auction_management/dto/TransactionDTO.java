@@ -5,14 +5,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BidUpdateDTO {
-    private Integer auctionId;
-    private BigDecimal currentPrice;
+public class TransactionDTO {
+    private Integer id;
     private Integer customerId;
+    private Integer auctionId;
+    private Double amount;
+    private String paymentMethod;
+    private String status;
 }

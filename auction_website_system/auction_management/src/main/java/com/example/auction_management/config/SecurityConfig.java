@@ -4,6 +4,7 @@ import com.example.auction_management.service.impl.CustomUserDetailsService;
 import com.example.auction_management.util.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -12,14 +13,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -71,17 +64,28 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
+                                "/api/auth/register-question",
                                 "/api/auctions/**",
                                 "/api/categories/**",
+                                "/api/transactions/paypal-return",    // Thêm endpoint callback PayPal
+                                "/api/transactions/paypal-cancel",      // Thêm endpoint hủy thanh toán PayPal (nếu có)
+                                "/api/transactions/vnpay-return",
                                 "/api/products/**",
-                                "/api/auth/register-question",
                                 "/api/auth/google"
                         ).permitAll()
-                        .requestMatchers("/api/bids/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
+                        // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
+                        .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
+
+                        // Chỉ cho phép người dùng có ROLE_USER truy cập /api/bids/**
+                        // (vì ta đã gán ROLE_USER ở CustomUserDetailsService)
+                        .requestMatchers("/api/bids/**").hasRole("USER")
+
+                        // Bất kỳ request nào khác cũng cần authenticated
+                        .anyRequest().authenticated()
                 )
-                .sessionManagement(sess -> sess
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -90,6 +94,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://yourdomain.com"));
         config.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://yourdomain.com"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));

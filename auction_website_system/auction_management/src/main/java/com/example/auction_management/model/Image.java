@@ -1,6 +1,7 @@
 package com.example.auction_management.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -21,8 +22,9 @@ public class Image {
 
     @ManyToOne
     @JoinColumn(name = "product_id", referencedColumnName = "product_id", nullable = true)
-    @JsonBackReference
+    @JsonIgnore  // Tránh lỗi serialization thay vì dùng JsonBackReference
     private Product product;
+
 
     @NotBlank(message = "Image URL must not be empty")
     @Column(name = "image_url", columnDefinition = "TEXT", nullable = false)

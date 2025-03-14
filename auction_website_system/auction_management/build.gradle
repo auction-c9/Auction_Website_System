@@ -62,6 +62,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'com.google.code.gson:gson:2.8.9'
     implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    // spring boot nhận biến từ file .env
+    implementation 'me.paulschwarz:spring-dotenv:3.0.0'
 }
 
 tasks.named('test') {

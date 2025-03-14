@@ -69,6 +69,8 @@ public class BidService implements IBidService {
         }
 
         // Kiểm tra giá thầu có hợp lệ không
+        // Lưu ý: Mặc dù chúng ta không cập nhật currentPrice trong Auction,
+        // chúng ta vẫn dùng giá hiện tại của phiên đấu giá để tính giá thầu tối thiểu
         BigDecimal minNextBid = auction.getCurrentPrice().add(auction.getBidStep());
         if (bidDTO.getBidAmount().compareTo(minNextBid) < 0) {
             throw new BidAmountTooLowException("Giá đấu phải từ " + minNextBid + " trở lên!");
@@ -79,11 +81,11 @@ public class BidService implements IBidService {
         auctionBids.forEach(b -> b.setIsWinner(false));
         bidRepository.saveAll(auctionBids);
 
-        // Cập nhật giá hiện tại của phiên đấu giá
-        auction.setCurrentPrice(bidDTO.getBidAmount());
-        auctionRepository.save(auction);
+        // Không cập nhật giá hiện tại của phiên đấu giá
+        // auction.setCurrentPrice(bidDTO.getBidAmount());
+        // auctionRepository.save(auction);
 
-        // Tạo bid mới
+        // Tạo bid mới với giá đấu (bidAmount) từ request
         Bid bid = new Bid();
         bid.setAuction(auction);
         bid.setCustomer(customer);
@@ -93,7 +95,7 @@ public class BidService implements IBidService {
 
         Bid savedBid = bidRepository.save(bid);
 
-        // Tạo DTO trả về đơn giản
+        // Tạo DTO trả về
         return new BidResponseDTO(
                 savedBid.getBidId(),
                 auction.getAuctionId(),
@@ -103,6 +105,7 @@ public class BidService implements IBidService {
                 savedBid.getIsWinner()
         );
     }
+
 
 
     // --- Custom Exceptions ---
