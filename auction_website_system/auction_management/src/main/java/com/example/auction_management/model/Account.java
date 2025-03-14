@@ -1,5 +1,7 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +13,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity(name = "accounts")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "accountId")
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +34,7 @@ public class Account {
     private AccountStatus status;
 
     @ManyToOne
-    @JoinColumn(name = "id_role", nullable = false) // Đảm bảo nullable = false nếu cần
+    @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
@@ -40,6 +43,4 @@ public class Account {
     public enum AccountStatus {
         active, inactive
     }
-
-
 }
