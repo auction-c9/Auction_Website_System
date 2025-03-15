@@ -64,24 +64,22 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/auth/register-question",
                                 "/api/auctions/**",
                                 "/api/categories/**",
-                                "/api/transactions/paypal-return",    // Thêm endpoint callback PayPal
-                                "/api/transactions/paypal-cancel",      // Thêm endpoint hủy thanh toán PayPal (nếu có)
-                                "/api/transactions/vnpay-return",
                                 "/api/products/**",
+                                "/api/auth/register-question",
+                                "/api/auth/google",
+                                "/api/transactions/paypal-return",
+                                "/api/transactions/paypal-cancel",
+                                "/api/transactions/vnpay-return",
                                 "/api/auth/google"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-
                         // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
-
                         // Chỉ cho phép người dùng có ROLE_USER truy cập /api/bids/**
                         // (vì ta đã gán ROLE_USER ở CustomUserDetailsService)
                         .requestMatchers("/api/bids/**").hasRole("USER")
-
                         // Bất kỳ request nào khác cũng cần authenticated
                         .anyRequest().authenticated()
                 )

@@ -1,7 +1,5 @@
 package com.example.auction_management.model;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +11,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity(name = "accounts")
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "accountId")
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,7 +37,17 @@ public class Account {
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private Customer customer;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", columnDefinition = "ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL'")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
     public enum AccountStatus {
         active, inactive
+    }
+
+    public enum AuthProvider {
+        LOCAL,
+        GOOGLE
     }
 }

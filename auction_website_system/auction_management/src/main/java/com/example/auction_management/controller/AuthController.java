@@ -6,6 +6,7 @@ import com.example.auction_management.dto.JwtResponse;
 import com.example.auction_management.dto.LoginRequest;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.model.Customer;
+import com.example.auction_management.model.VerificationToken;
 import com.example.auction_management.service.IAccountService;
 import com.example.auction_management.service.impl.AuthService;
 import com.example.auction_management.service.impl.CaptchaService;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -122,6 +124,12 @@ public class AuthController {
         } catch (GeneralSecurityException | IOException e) {
             return ResponseEntity.status(401).body(Map.of("error", "Xác thực Google thất bại"));
         }
+    }
+
+    @GetMapping("/verify-link-account")
+    public ResponseEntity<?> verifyLinkAccount(@RequestParam String token) {
+        authService.verifyLinkAccount(token);
+        return ResponseEntity.ok("Liên kết tài khoản thành công!");
     }
 }
 
