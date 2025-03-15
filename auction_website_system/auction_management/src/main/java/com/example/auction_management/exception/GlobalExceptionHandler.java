@@ -64,8 +64,7 @@ public class GlobalExceptionHandler {
             BidService.CustomerNotFoundException.class,
             BidService.AuctionNotActiveException.class,
             BidService.AuctionEndedException.class,
-            BidService.BidAmountTooLowException.class,
-            BidService.DepositNotPaidException.class
+            BidService.BidAmountTooLowException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBidExceptions(RuntimeException ex) {

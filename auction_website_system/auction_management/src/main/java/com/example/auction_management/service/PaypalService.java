@@ -72,7 +72,7 @@ public class PaypalService {
     }
 
     // Tạo thanh toán PayPal và trả về redirectUrl
-    public String createPayment(Integer customerId, Integer auctionId, Double amount, String transactionId) {
+    public String createPayment(Integer customerId, Integer auctionId, Double amount, String transactionId, String callbackUrl) {
         // Lấy Customer và Auction (nếu cần cho mô tả, v.v.)
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
@@ -88,7 +88,7 @@ public class PaypalService {
         Map<String, Object> paymentPayload = new HashMap<>();
         paymentPayload.put("intent", "sale");
         Map<String, String> redirectUrls = new HashMap<>();
-        redirectUrls.put("return_url", returnUrl + "?transactionId=" + transactionId);
+        redirectUrls.put("return_url", callbackUrl);
         redirectUrls.put("cancel_url", cancelUrl + "?transactionId=" + transactionId);
         paymentPayload.put("redirect_urls", redirectUrls);
         Map<String, Object> payer = new HashMap<>();
@@ -149,13 +149,14 @@ public class PaypalService {
     public String handlePayPalReturn(String transactionId, String paymentId, String payerId) {
         // Gọi API execute payment
         String executionStatus = executePayment(paymentId, payerId);
+        String finalStatus = "SUCCESS".equalsIgnoreCase(executionStatus) ? "SUCCESS" : "FAILED";
         // Cập nhật trạng thái giao dịch
         Optional<Transaction> transactionOpt = transactionRepository.findByTransactionId(transactionId);
         if (transactionOpt.isPresent()) {
             Transaction transaction = transactionOpt.get();
-            transaction.setStatus("SUCCESS".equalsIgnoreCase(executionStatus) ? "SUCCESS" : "FAILED");
+            transaction.setStatus(finalStatus);
             transactionRepository.save(transaction);
         }
-        return "Payment processed via PayPal";
+        return finalStatus;
     }
 }
