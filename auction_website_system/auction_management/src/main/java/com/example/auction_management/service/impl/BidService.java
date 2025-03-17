@@ -25,6 +25,7 @@ public class BidService implements IBidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
+    private final TransactionRepository transactionRepository;
 
     // ---------------------- CRUD BASIC ----------------------
 
@@ -51,10 +52,6 @@ public class BidService implements IBidService {
     }
 
     // ---------------------- PLACE BID LOGIC ----------------------
-
-    /**
-     * Đặt giá thầu (Bid) cho phiên đấu giá
-     */
     @Override
     @Transactional
     public BidResponseDTO placeBid(BidDTO bidDTO) {
@@ -69,6 +66,16 @@ public class BidService implements IBidService {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByAccountUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin khách hàng!"));
+
+        // ✅ Kiểm tra không cho chủ bài đấu giá đặt giá
+        if (auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
+            throw new InvalidActionException("Bạn không thể đặt giá cho bài đấu giá của chính mình!");
+        }
+
+        // ✅ Kiểm tra đã thanh toán đặt cọc chưa
+        if (!checkDeposit(customer.getCustomerId(), auction.getAuctionId())) {
+            throw new InvalidActionException("Bạn cần hoàn tất đặt cọc để tham gia đấu giá!");
+        }
 
         // Kiểm tra giá đấu
         validateBidAmount(auction, bidDTO.getBidAmount());
@@ -89,12 +96,7 @@ public class BidService implements IBidService {
         // Tạo DTO trả về
         return mapToBidResponseDTO(savedBid);
     }
-
     // ---------------------- HISTORY & WINNER ----------------------
-
-    /**
-     * Lấy lịch sử đấu giá của một phiên đấu giá
-     */
 
     public List<BidResponseDTO> getBidHistoryByAuctionId(Integer auctionId) {
         List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId); // Lấy danh sách bid theo auctionId, giảm dần
@@ -114,11 +116,6 @@ public class BidService implements IBidService {
                 .collect(Collectors.toList());
     }
 
-
-    /**
-     * Lấy thông tin người đang giữ giá cao nhất (Winner hiện tại)
-     */
-
     public Optional<Bid> getCurrentHighestBid(Integer auctionId) {
         return bidRepository.findTopByAuctionOrderByBidAmountDesc(auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!")));
@@ -128,14 +125,7 @@ public class BidService implements IBidService {
                 .orElseThrow(() -> new CustomerNotFoundException("Không tìm thấy tài khoản khách hàng!"));
         return customer.getCustomerId();
     }
-
-
-
     // ---------------------- SUPPORT METHODS ----------------------
-
-    /**
-     * Kiểm tra phiên đấu giá hợp lệ để đặt giá
-     */
     private void validateAuctionStatus(Auction auction) {
         if (!auction.getStatus().equals(Auction.AuctionStatus.active)) {
             throw new InvalidActionException("Phiên đấu giá không còn hoạt động!");
@@ -145,9 +135,6 @@ public class BidService implements IBidService {
         }
     }
 
-    /**
-     * Kiểm tra giá đấu phải cao hơn mức hiện tại + bước giá
-     */
     private void validateBidAmount(Auction auction, BigDecimal bidAmount) {
         BigDecimal minNextBid = auction.getCurrentPrice().add(auction.getBidStep());
         if (bidAmount.compareTo(minNextBid) < 0) {
@@ -155,9 +142,6 @@ public class BidService implements IBidService {
         }
     }
 
-    /**
-     * Reset trạng thái winner về false cho các bid cũ
-     */
     private void resetOldBids(Auction auction) {
         List<Bid> oldBids = bidRepository.findByAuction(auction);
         oldBids.forEach(b -> b.setIsWinner(false));
@@ -174,5 +158,33 @@ public class BidService implements IBidService {
                 bid.getIsWinner(),
                 "Đặt giá thành công!"
         );
+    }
+    /**
+     * Kiểm tra xem người dùng đã thanh toán đặt cọc hay chưa
+     */
+    public boolean checkDeposit(Integer customerId, Integer auctionId) {
+        return transactionRepository.existsByCustomer_CustomerIdAndAuction_AuctionIdAndTransactionType(customerId, auctionId, "DEPOSIT");
+    }
+
+    /**
+     * Lưu thông tin giao dịch đặt cọc
+     */
+    public void saveDepositTransaction(Integer customerId, Integer auctionId, Double amount, String method) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng!"));
+
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!"));
+
+        Transaction transaction = new Transaction();
+        transaction.setCustomer(customer); // Truyền đối tượng Customer thay vì Integer
+        transaction.setAuction(auction);   // Truyền đối tượng Auction thay vì Integer
+        transaction.setAmount(amount);
+        transaction.setPaymentMethod(method);
+        transaction.setTransactionType("DEPOSIT");
+        transaction.setStatus("COMPLETED");
+        transaction.setCreatedAt(LocalDateTime.now());
+
+        transactionRepository.save(transaction);
     }
 }

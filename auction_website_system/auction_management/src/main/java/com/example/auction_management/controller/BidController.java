@@ -53,7 +53,6 @@ public class BidController {
         return ResponseEntity.ok(bidResponse);
     }
 
-
     /**
      * API lấy lịch sử đấu giá theo auctionId
      */
@@ -61,5 +60,18 @@ public class BidController {
     public ResponseEntity<List<BidResponseDTO>> getBidHistory(@PathVariable Integer auctionId) {
         List<BidResponseDTO> bidHistory = bidService.getBidHistoryByAuctionId(auctionId);
         return ResponseEntity.ok(bidHistory);
+    }
+
+    @GetMapping("/deposit/check")
+    public ResponseEntity<?> checkDeposit(@RequestParam Integer auctionId, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn cần đăng nhập để kiểm tra tiền đặt cọc!");
+        }
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Integer customerId = bidService.getCustomerIdFromUsername(userDetails.getUsername());
+
+        boolean hasDeposit = bidService.checkDeposit(customerId, auctionId);
+        return ResponseEntity.ok(hasDeposit);
     }
 }
