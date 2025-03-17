@@ -25,6 +25,7 @@ public class BidService implements IBidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
+    private final TransactionRepository transactionRepository;
 
     // ---------------------- CRUD BASIC ----------------------
 
@@ -71,6 +72,11 @@ public class BidService implements IBidService {
             throw new InvalidActionException("Bạn không thể đặt giá cho bài đấu giá của chính mình!");
         }
 
+        // ✅ Kiểm tra đã thanh toán đặt cọc chưa
+        if (!checkDeposit(customer.getCustomerId(), auction.getAuctionId())) {
+            throw new InvalidActionException("Bạn cần hoàn tất đặt cọc để tham gia đấu giá!");
+        }
+
         // Kiểm tra giá đấu
         validateBidAmount(auction, bidDTO.getBidAmount());
 
@@ -91,7 +97,6 @@ public class BidService implements IBidService {
         return mapToBidResponseDTO(savedBid);
     }
     // ---------------------- HISTORY & WINNER ----------------------
-
 
     public List<BidResponseDTO> getBidHistoryByAuctionId(Integer auctionId) {
         List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId); // Lấy danh sách bid theo auctionId, giảm dần
@@ -153,5 +158,33 @@ public class BidService implements IBidService {
                 bid.getIsWinner(),
                 "Đặt giá thành công!"
         );
+    }
+    /**
+     * Kiểm tra xem người dùng đã thanh toán đặt cọc hay chưa
+     */
+    public boolean checkDeposit(Integer customerId, Integer auctionId) {
+        return transactionRepository.existsByCustomer_CustomerIdAndAuction_AuctionIdAndTransactionType(customerId, auctionId, "DEPOSIT");
+    }
+
+    /**
+     * Lưu thông tin giao dịch đặt cọc
+     */
+    public void saveDepositTransaction(Integer customerId, Integer auctionId, Double amount, String method) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng!"));
+
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!"));
+
+        Transaction transaction = new Transaction();
+        transaction.setCustomer(customer); // Truyền đối tượng Customer thay vì Integer
+        transaction.setAuction(auction);   // Truyền đối tượng Auction thay vì Integer
+        transaction.setAmount(amount);
+        transaction.setPaymentMethod(method);
+        transaction.setTransactionType("DEPOSIT");
+        transaction.setStatus("COMPLETED");
+        transaction.setCreatedAt(LocalDateTime.now());
+
+        transactionRepository.save(transaction);
     }
 }

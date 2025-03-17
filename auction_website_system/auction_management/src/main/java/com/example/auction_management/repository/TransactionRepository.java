@@ -11,5 +11,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     Optional<Transaction> findById(Integer id); // Nếu không có transactionId, dùng id
     Optional<Transaction> findByTransactionId(String transactionId);
     Transaction findByVnpTxnRef(String vnpTxnRef);
+    boolean existsByCustomer_CustomerIdAndAuction_AuctionIdAndTransactionType(Integer customerId, Integer auctionId, String type);
 
 }
