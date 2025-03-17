@@ -67,7 +67,7 @@ public class AuctionController {
 
     // Lấy danh sách phiên đấu giá theo ID sản phẩm
     @GetMapping("/product/{productId}")
-    public ResponseEntity<List<Auction>> getAuctionsByProduct(@PathVariable Integer productId) {
+    public ResponseEntity<Optional<Auction>> getAuctionsByProduct(@PathVariable Integer productId) {
         Product product = new Product();
         product.setProductId(productId);
         return ResponseEntity.ok(auctionService.findByProduct(product));

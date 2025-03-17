@@ -1,17 +1,18 @@
 package com.example.auction_management.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.AccessLevel;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
+@Builder
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
 @NoArgsConstructor
-@AllArgsConstructor
 public class BidResponseDTO {
     private Integer bidId;
     private Integer auctionId;
@@ -19,4 +20,5 @@ public class BidResponseDTO {
     private BigDecimal bidAmount;
     private LocalDateTime bidTime;
     private Boolean isWinner;
+    private String message;
 }
