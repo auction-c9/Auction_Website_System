@@ -12,4 +12,6 @@ public interface AccountRepository extends JpaRepository<Account,Integer> {
 
     boolean existsByUsername(String username);
 
+    @Query("SELECT a.role.name FROM accounts a WHERE a.username = :username")
+    Optional<String> findRoleNameByUsername(@Param("username") String username);
 }

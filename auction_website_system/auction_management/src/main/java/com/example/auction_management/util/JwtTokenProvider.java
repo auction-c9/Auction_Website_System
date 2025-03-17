@@ -21,9 +21,10 @@ public class JwtTokenProvider {
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
-    public String generateToken(String username, Integer customerId) {
+    public String generateToken(String username, Integer customerId,String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("customerId", customerId);
+        claims.put("role", role);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
@@ -61,5 +62,14 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
         return (Integer) claims.get("customerId");
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return (String) claims.get("role");
     }
 }
