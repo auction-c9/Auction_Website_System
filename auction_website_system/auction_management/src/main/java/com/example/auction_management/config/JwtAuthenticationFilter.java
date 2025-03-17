@@ -51,6 +51,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
             String role = jwtTokenProvider.getRoleFromToken(token);
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            System.out.println("User authorities: " + userDetails.getAuthorities());
+
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); put("role",role); }});
