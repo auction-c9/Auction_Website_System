@@ -6,32 +6,33 @@ import com.example.auction_management.config.CloudinaryConfig;
 import com.example.auction_management.dto.AccountDto;
 import com.example.auction_management.dto.JwtResponse;
 import com.example.auction_management.dto.LoginRequest;
-import com.example.auction_management.exception.AccountConflictException;
-import com.example.auction_management.exception.AccountNotFoundException;
-import com.example.auction_management.exception.InvalidTokenException;
-import com.example.auction_management.exception.TokenExpiredException;
+import com.example.auction_management.exception.*;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.EmailService;
 import com.example.auction_management.util.JwtTokenProvider;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import jakarta.transaction.Transactional;
-import org.springframework.data.repository.query.Param;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
+import static com.example.auction_management.model.Token.TokenType.ACCOUNT_VERIFICATION;
+
+@Slf4j
 @Service
-@Transactional
 public class AuthService {
     private Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
     private final AuthenticationManager authenticationManager;
@@ -42,13 +43,13 @@ public class AuthService {
     private final CustomerRepository customerRepository;
     private final RoleRepository roleRepository;
     private final ImageRepository imageRepository;
-    private final VerificationTokenRepository verificationTokenRepository;
+    private final TokenRepository tokenRepository;
     private final EmailService emailService;
 
     public AuthService(AuthenticationManager authenticationManager, CustomUserDetailsService customUserDetailsService,
                        JwtTokenProvider jwtTokenProvider, AccountRepository accountRepository, PasswordEncoder passwordEncoder,
-                       CustomerRepository customerRepository, RoleRepository roleRepository,ImageRepository imageRepository,
-                       VerificationTokenRepository verificationTokenRepository, EmailService emailService ) {
+                       CustomerRepository customerRepository, RoleRepository roleRepository, ImageRepository imageRepository,
+                       TokenRepository tokenRepository, EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.customUserDetailsService = customUserDetailsService;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -57,7 +58,7 @@ public class AuthService {
         this.customerRepository = customerRepository;
         this.roleRepository = roleRepository;
         this.imageRepository = imageRepository;
-        this.verificationTokenRepository = verificationTokenRepository;
+        this.tokenRepository = tokenRepository;
         this.emailService = emailService;
     }
 
@@ -67,93 +68,106 @@ public class AuthService {
         );
         Optional<Integer> optionalCustomerId = customerRepository.findCustomerIdByUsername(loginRequest.getUsername());
         Integer customerId = optionalCustomerId.orElse(null);
+
+        // Lấy thông tin role
+        Account account = accountRepository.findByUsername(loginRequest.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        String role = account.getRole().getName();
+
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequest.getUsername());
-        String token = jwtTokenProvider.generateToken(userDetails.getUsername(),customerId);
-        return new JwtResponse(token,customerId);
+
+        String token = jwtTokenProvider.generateToken(userDetails.getUsername(), customerId, role);
+        return new JwtResponse(token, customerId, role);
     }
 
     public void register(AccountDto accountDto, String storedCaptchaAnswer) {
-        System.out.println("[DEBUG] Password: " + accountDto.getPassword());
-        System.out.println("[DEBUG] Confirm Password: " + accountDto.getConfirmPassword());
-        if (accountDto.getPassword() == null || accountDto.getConfirmPassword() == null) {
-            throw new IllegalArgumentException("Mật khẩu và xác nhận mật khẩu không được để trống");
-        }
-
-        if (!accountDto.getPassword().equals(accountDto.getConfirmPassword())) {
-            throw new IllegalArgumentException("Mật khẩu không khớp");
-        }
-        // Xác thực mã
-        if (!accountDto.getCaptcha().equals(storedCaptchaAnswer)) {
-            throw new IllegalArgumentException("Mã xác thực không chính xác");
-        }
-        // Kiểm tra username
-        if (accountRepository.existsByUsername(accountDto.getUsername())) {
-            throw new IllegalArgumentException("Username đã tồn tại");
-        }
-
-        // Kiểm tra email đã đăng ký bằng Google
-        Optional<Account> existingAccount = accountRepository.findByUsername(accountDto.getEmail());
-        if (existingAccount.isPresent() && existingAccount.get().getAuthProvider() == Account.AuthProvider.GOOGLE) {
-            throw new IllegalArgumentException("Email đã được đăng ký bằng Google. Vui lòng đăng nhập bằng Google.");
-        }
-
-        // Upload ảnh đại diện
-        Image avatar = null;
-        if (accountDto.getAvatarFile() != null && !accountDto.getAvatarFile().isEmpty()) {
-            try {
-                Map<?, ?> uploadResult = cloudinary.uploader().upload(
-                        accountDto.getAvatarFile().getBytes(),
-                        ObjectUtils.emptyMap()
-                );
-
-                avatar = new Image();
-                avatar.setImageUrl(uploadResult.get("url").toString());
-                imageRepository.save(avatar);
-            } catch (IOException e) {
-                throw new RuntimeException("Lỗi khi upload ảnh đại diện");
+        try {
+            System.out.println("[DEBUG] Password: " + accountDto.getPassword());
+            System.out.println("[DEBUG] Confirm Password: " + accountDto.getConfirmPassword());
+            if (accountDto.getPassword() == null || accountDto.getConfirmPassword() == null) {
+                throw new IllegalArgumentException("Mật khẩu và xác nhận mật khẩu không được để trống");
             }
+
+            if (!accountDto.getPassword().equals(accountDto.getConfirmPassword())) {
+                throw new IllegalArgumentException("Mật khẩu không khớp");
+            }
+            // Xác thực mã
+            if (!accountDto.getCaptcha().equals(storedCaptchaAnswer)) {
+                throw new IllegalArgumentException("Mã xác thực không chính xác");
+            }
+            // Kiểm tra username
+            if (accountRepository.existsByUsername(accountDto.getUsername())) {
+                throw new IllegalArgumentException("Username đã tồn tại");
+            }
+
+            // Kiểm tra email đã đăng ký bằng Google
+            Optional<Account> existingAccount = accountRepository.findByUsername(accountDto.getEmail());
+            if (existingAccount.isPresent() && existingAccount.get().getAuthProvider() == Account.AuthProvider.GOOGLE) {
+                throw new IllegalArgumentException("Email đã được đăng ký bằng Google. Vui lòng đăng nhập bằng Google.");
+            }
+
+            // Upload ảnh đại diện
+            Image avatar = null;
+            if (accountDto.getAvatarFile() != null && !accountDto.getAvatarFile().isEmpty()) {
+                try {
+                    Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                            accountDto.getAvatarFile().getBytes(),
+                            ObjectUtils.emptyMap()
+                    );
+
+                    avatar = new Image();
+                    avatar.setImageUrl(uploadResult.get("url").toString());
+                    imageRepository.save(avatar);
+                } catch (IOException e) {
+                    throw new RuntimeException("Lỗi khi upload ảnh đại diện");
+                }
+            }
+            // Tạo Account
+            Account account = new Account();
+            account.setUsername(accountDto.getUsername());
+            account.setPassword(passwordEncoder.encode(accountDto.getPassword()));
+            account.setStatus(Account.AccountStatus.active);
+            // Lấy Role từ database (sửa thành "ROLE_USER")
+            Role defaultRole = roleRepository.findByName("ROLE_USER") // Sửa ở đây
+                    .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+            account.setRole(defaultRole);
+
+            // Tạo Customer
+            Customer customer = new Customer();
+            customer.setName(accountDto.getName());
+            customer.setEmail(accountDto.getEmail());
+            customer.setPhone(accountDto.getPhone());
+            customer.setIdentityCard(accountDto.getIdentityCard());
+            customer.setAddress(accountDto.getAddress());
+            customer.setAvatar(avatar);
+            customer.setAccount(account);
+            account.setAuthProvider(Account.AuthProvider.LOCAL);
+
+            // Lưu vào database
+            accountRepository.save(account);
+            customerRepository.save(customer);
+        } catch (Exception e) {
+            // Log lỗi và ném lại ngoại lệ
+            e.printStackTrace();
+            throw e;
         }
-        // Tạo Account
-        Account account = new Account();
-        account.setUsername(accountDto.getUsername());
-        account.setPassword(passwordEncoder.encode(accountDto.getPassword()));
-        account.setStatus(Account.AccountStatus.active);
-        // Lấy Role từ database (sửa thành "ROLE_USER")
-        Role defaultRole = roleRepository.findByName("ROLE_USER") // Sửa ở đây
-                .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
-        account.setRole(defaultRole);
-
-        // Tạo Customer
-        Customer customer = new Customer();
-        customer.setName(accountDto.getName());
-        customer.setEmail(accountDto.getEmail());
-        customer.setPhone(accountDto.getPhone());
-        customer.setIdentityCard(accountDto.getIdentityCard());
-        customer.setAddress(accountDto.getAddress());
-        customer.setAvatar(avatar);
-        customer.setAccount(account);
-        account.setAuthProvider(Account.AuthProvider.LOCAL);
-
-        // Lưu vào database
-        accountRepository.save(account);
-        customerRepository.save(customer);
     }
 
     public void verifyLinkAccount(String token) {
-        VerificationToken verificationToken = verificationTokenRepository.findByToken(token)
+        Token verificationToken = tokenRepository.findByCode(token)
                 .orElseThrow(() -> new InvalidTokenException("Token không hợp lệ"));
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            verificationTokenRepository.delete(verificationToken);
+            tokenRepository.delete(verificationToken);
             throw new TokenExpiredException("Token đã hết hạn");
         }
 
-        Account account = accountRepository.findByUsername(verificationToken.getEmail())
+        Account account = accountRepository.findByUsername(verificationToken.getIdentifier())
                 .orElseThrow(() -> new AccountNotFoundException("Tài khoản không tồn tại"));
 
         account.setAuthProvider(Account.AuthProvider.GOOGLE);
         accountRepository.save(account);
-        verificationTokenRepository.delete(verificationToken);
+        tokenRepository.delete(verificationToken);
     }
 
     public JwtResponse handleGoogleLogin(GoogleIdToken.Payload payload) {
@@ -167,28 +181,30 @@ public class AuthService {
             if (account.getAuthProvider() == Account.AuthProvider.GOOGLE) {
                 return handleExistingAccount(account);
             } else {
-                // Tạo token liên kết và gửi email
-                String token = UUID.randomUUID().toString();
-                VerificationToken verificationToken = new VerificationToken();
-                verificationToken.setToken(token);
-                verificationToken.setEmail(email);
-                verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
-                verificationTokenRepository.save(verificationToken);
+                // Tạo token và gửi email xác nhận
+                String verificationToken = UUID.randomUUID().toString();
+                Token tokenEntity = new Token();
+                tokenEntity.setTokenType(ACCOUNT_VERIFICATION);
+                tokenEntity.setIdentifier(email);
+                tokenEntity.setExpiryDate(LocalDateTime.now().plusHours(24));
+                tokenRepository.save(tokenEntity);
 
-                String verificationLink = "http://your-domain.com/verify-link-account?token=" + token;
+                // Gửi email xác nhận (KHÔNG trả về JWT)
+                String verificationLink = "http://your-domain.com/verify-link-account?token=" + verificationToken;
                 emailService.sendVerificationEmail(email, verificationLink);
 
-                throw new AccountConflictException("Email đã được đăng ký. Vui lòng kiểm tra email để xác nhận liên kết.");
+                throw new AccountConflictException("Vui lòng xác nhận email trước khi đăng nhập");
             }
         }
 
         // Tạo tài khoản mới
         Account newAccount = createSocialAccount(email);
         Customer newCustomer = createSocialCustomer(newAccount, name, email, pictureUrl);
+        // Thêm logic lấy role từ account
+        String role = newAccount.getRole().getName();
 
-        // Tạo JWT
-        String token = jwtTokenProvider.generateToken(email, newCustomer.getCustomerId());
-        return new JwtResponse(token, newCustomer.getCustomerId());
+        return new JwtResponse(jwtTokenProvider.generateToken(email, newCustomer.getCustomerId(), role),
+                newCustomer.getCustomerId(), role);
     }
 
     private JwtResponse handleExistingAccount(Account account) {
@@ -199,8 +215,9 @@ public class AuthService {
             throw new RuntimeException("Tài khoản chưa được kích hoạt");
         }
 
-        String token = jwtTokenProvider.generateToken(account.getUsername(), customer.getCustomerId());
-        return new JwtResponse(token, customer.getCustomerId());
+        String role = account.getRole().getName();
+        String token = jwtTokenProvider.generateToken(account.getUsername(), customer.getCustomerId(),role);
+        return new JwtResponse(token, customer.getCustomerId(),role);
     }
 
     private Account createSocialAccount(String email) {
@@ -215,11 +232,24 @@ public class AuthService {
     }
 
     private Customer createSocialCustomer(Account account, String name, String email, String pictureUrl) {
-        Customer customer = new Customer();
-        customer.setName(name);
-        customer.setEmail(email);
-        customer.setAccount(account);
+        // Kiểm tra Customer đã tồn tại bằng email
+        Optional<Customer> existingCustomer = customerRepository.findByEmail(email);
+        Customer customer;
 
+        if (existingCustomer.isPresent()) {
+            // Cập nhật Customer hiện có
+            customer = existingCustomer.get();
+            customer.setName(name);
+            customer.setAccount(account); // Liên kết với Account mới (Google)
+        } else {
+            // Tạo mới Customer
+            customer = new Customer();
+            customer.setName(name);
+            customer.setEmail(email);
+            customer.setAccount(account);
+        }
+
+        // Xử lý avatar
         if (pictureUrl != null) {
             Image avatar = new Image();
             avatar.setImageUrl(pictureUrl);
@@ -228,5 +258,90 @@ public class AuthService {
         }
 
         return customerRepository.save(customer);
+    }
+
+    @Transactional(noRollbackFor = EmailException.class)
+    public void initiatePasswordReset(String username) {
+        try {
+            log.info("Bắt đầu quy trình quên mật khẩu cho username: {}", username);
+
+            Optional<Account> accountOpt = accountRepository.findByUsername(username);
+            if (accountOpt.isEmpty()) {
+                log.error("Tài khoản không tồn tại: {}", username);
+                throw new IllegalArgumentException("Tài khoản không tồn tại");
+            }
+
+            Account account = accountOpt.get();
+            Customer customer = account.getCustomer();
+            if (customer == null || customer.getEmail() == null) {
+                log.error("Tài khoản {} không có email đăng ký", username);
+                throw new IllegalArgumentException("Tài khoản không có email đăng ký");
+            }
+            String email = customer.getEmail();
+            log.info("Email của tài khoản {}: {}", username, email);
+
+            // Xóa token cũ bằng EMAIL
+            tokenRepository.deleteByIdentifierAndTokenType(email, Token.TokenType.PASSWORD_RESET);
+            log.info("Đã xóa token cũ cho email: {}", email);
+
+            String code = String.format("%06d", new Random().nextInt(999999));
+            log.info("Mã code được tạo: {}", code);
+
+            Token token = new Token();
+            token.setCode(code);
+            token.setIdentifier(email);
+            token.setTokenType(Token.TokenType.PASSWORD_RESET);
+            token.setExpiryDate(LocalDateTime.now().plusMinutes(5));
+            log.info("Thông tin token trước khi lưu: {}", token);
+
+            // Lưu token
+            Token savedToken = tokenRepository.save(token);
+            log.info("Đã lưu token thành công: {}", savedToken);
+
+            // Gửi email
+            emailService.sendPasswordResetEmail(email, customer, code);
+            log.info("Đã gửi email đến: {}", email);
+
+        } catch (Exception e) {
+            log.error("Lỗi trong initiatePasswordReset: ", e);
+            throw new RuntimeException("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    public void validateResetCode(String username, String code) {
+        // Lấy EMAIL từ username
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
+        String email = account.getCustomer().getEmail();
+
+        Optional<Token> tokenOpt = tokenRepository.findByCodeAndIdentifierAndTokenType(
+                code,
+                email,
+                Token.TokenType.PASSWORD_RESET
+        );
+        Token token = tokenOpt.orElseThrow(() ->
+                new IllegalArgumentException("Mã xác nhận không hợp lệ")
+        );
+
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            tokenRepository.delete(token);
+            throw new IllegalArgumentException("Mã đã hết hạn");
+        }
+    }
+
+    public void resetPassword(String username, String newPassword, String confirmPassword) {
+        if (!newPassword.equals(confirmPassword)) {
+            throw new IllegalArgumentException("Mật khẩu không khớp");
+        }
+
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
+
+        // Mã hóa mật khẩu mới
+        account.setPassword(passwordEncoder.encode(newPassword));
+        accountRepository.save(account);
+
+        // Xóa token đã sử dụng
+        tokenRepository.deleteByIdentifierAndTokenType(username, Token.TokenType.PASSWORD_RESET);
     }
 }

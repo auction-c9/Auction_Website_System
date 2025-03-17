@@ -49,10 +49,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String username = jwtTokenProvider.getUsernameFromToken(token);
             Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
+            String role = jwtTokenProvider.getRoleFromToken(token);
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); }});
+            authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); put("role",role); }});
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
         filterChain.doFilter(request, response);

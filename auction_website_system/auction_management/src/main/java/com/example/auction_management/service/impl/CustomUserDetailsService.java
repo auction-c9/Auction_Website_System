@@ -3,11 +3,13 @@ package com.example.auction_management.service.impl;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,16 +20,22 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<Account> account = accountRepository.findByUsername(username);
-        if (account.isEmpty()) {
-            throw new UsernameNotFoundException("User not found with username: " + username);
-        }
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        // Gán quyền mặc định ROLE_USER cho tất cả người dùng
+
+        // Lấy role từ account
+        String roleName = account.getRole().getName();
+
+        // Tạo GrantedAuthority từ role
+        List<GrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority(roleName)
+        );
+
         return new User(
-                account.get().getUsername(),
-                account.get().getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                account.getUsername(),
+                account.getPassword(),
+                authorities
         );
     }
 }

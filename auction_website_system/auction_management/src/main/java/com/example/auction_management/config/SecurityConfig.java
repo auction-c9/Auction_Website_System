@@ -18,6 +18,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
+import org.thymeleaf.templatemode.TemplateMode;
 
 import java.util.Arrays;
 
@@ -42,6 +45,22 @@ public class SecurityConfig {
         return new CustomUserDetailsService();
     }
 
+    @Bean
+    public SpringResourceTemplateResolver templateResolver() {
+        SpringResourceTemplateResolver resolver = new SpringResourceTemplateResolver();
+        resolver.setPrefix("classpath:/templates/");
+        resolver.setSuffix(".html");
+        resolver.setTemplateMode(TemplateMode.HTML);
+        resolver.setCharacterEncoding("UTF-8");
+        return resolver;
+    }
+
+    @Bean
+    public SpringTemplateEngine templateEngine() {
+        SpringTemplateEngine engine = new SpringTemplateEngine();
+        engine.setTemplateResolver(templateResolver());
+        return engine;
+    }
     @Bean
     public AuthenticationManager authenticationManager() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -72,15 +91,15 @@ public class SecurityConfig {
                                 "/api/transactions/paypal-return",
                                 "/api/transactions/paypal-cancel",
                                 "/api/transactions/vnpay-return",
-                                "/api/auth/google"
+                                "/api/auth/google",
+                                "api/auth/forgot-password",
+                                "api/auth/verify-reset-code",
+                                "api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                        // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
-                        // Chỉ cho phép người dùng có ROLE_USER truy cập /api/bids/**
-                        // (vì ta đã gán ROLE_USER ở CustomUserDetailsService)
                         .requestMatchers("/api/bids/**").hasRole("USER")
-                        // Bất kỳ request nào khác cũng cần authenticated
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -93,7 +112,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://yourdomain.com"));
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://yourdomain.com"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization"));
