@@ -24,8 +24,6 @@ import org.thymeleaf.templatemode.TemplateMode;
 
 import java.util.Arrays;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -95,7 +93,6 @@ public class SecurityConfig {
                                 "api/auth/forgot-password",
                                 "api/auth/verify-reset-code",
                                 "api/auth/reset-password",
-                                "api/bids/auction",
                                 "/ws-auction/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
