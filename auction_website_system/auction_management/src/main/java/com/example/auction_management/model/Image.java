@@ -29,4 +29,8 @@ public class Image {
     @NotBlank(message = "Image URL must not be empty")
     @Column(name = "image_url", columnDefinition = "TEXT", nullable = false)
     private String imageUrl;
+
+    @OneToOne(mappedBy = "avatar")
+    @JsonBackReference
+    private Customer customer;
 }

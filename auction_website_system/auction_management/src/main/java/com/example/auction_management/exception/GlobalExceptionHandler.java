@@ -130,4 +130,48 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
+
+    // Xử lý AccountConflictException
+    @ExceptionHandler(AccountConflictException.class)
+    public ResponseEntity<ErrorResponse> handleAccountConflictException(AccountConflictException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .statusCode(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    // Xử lý InvalidTokenException
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTokenException(InvalidTokenException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    // Xử lý TokenExpiredException
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleTokenExpiredException(TokenExpiredException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    // Xử lý AccountNotFoundException
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAccountNotFoundException(AccountNotFoundException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .statusCode(HttpStatus.NOT_FOUND.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
 }

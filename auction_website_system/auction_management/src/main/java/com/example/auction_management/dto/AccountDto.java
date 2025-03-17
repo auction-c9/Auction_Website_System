@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -39,4 +40,7 @@ public class AccountDto {
     private String captcha; // Câu trả lời từ người dùng
 
     private String captchaQuestion;
+
+    @NotNull(message = "Ảnh đại diện sản phẩm không được để trống")
+    private MultipartFile avatarFile;
 }

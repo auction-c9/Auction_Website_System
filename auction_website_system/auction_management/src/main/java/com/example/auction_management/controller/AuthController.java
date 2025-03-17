@@ -1,21 +1,37 @@
 package com.example.auction_management.controller;
 
+import com.auth0.jwt.algorithms.Algorithm;
 import com.example.auction_management.dto.AccountDto;
+import com.example.auction_management.dto.JwtResponse;
 import com.example.auction_management.dto.LoginRequest;
 import com.example.auction_management.model.Account;
+import com.example.auction_management.model.Customer;
+import com.example.auction_management.model.VerificationToken;
 import com.example.auction_management.service.IAccountService;
 import com.example.auction_management.service.impl.AuthService;
 import com.example.auction_management.service.impl.CaptchaService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.springframework.security.config.Elements.JWT;
 
 @CrossOrigin("*")
 @RestController
@@ -23,10 +39,12 @@ import java.util.Optional;
 public class AuthController {
     private final AuthService authService;
     private final CaptchaService captchaService;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
 
-    public AuthController(AuthService authService,CaptchaService captchaService) {
+    public AuthController(AuthService authService,CaptchaService captchaService, GoogleIdTokenVerifier googleIdTokenVerifier) {
         this.authService = authService;
         this.captchaService = captchaService;
+        this.googleIdTokenVerifier = googleIdTokenVerifier;
     }
 
     @Autowired
@@ -65,9 +83,9 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("question", captcha.get("question")));
     }
 
-    @PostMapping("/register")
+    @PostMapping(value = "/register",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> register(
-            @Validated @RequestBody AccountDto accountDto,
+            @Validated @ModelAttribute AccountDto accountDto,
             HttpSession session
     ) {
         System.out.println("Session attributes: " + session.getAttributeNames());
@@ -87,6 +105,31 @@ public class AuthController {
         String username = authentication.getName();
         Optional<Account> account = accountService.findAccountByUsername(username);
         return ResponseEntity.ok(account.orElseThrow(() -> new RuntimeException("User not found")));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> authenticateGoogle(@RequestBody Map<String, String> request) {
+        try {
+            String idToken = request.get("token");
+            GoogleIdToken idTokenObj = googleIdTokenVerifier.verify(idToken);
+
+            if (idTokenObj == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Token không hợp lệ"));
+            }
+
+            // Xử lý logic nghiệp vụ trong service
+            JwtResponse jwtResponse = authService.handleGoogleLogin(idTokenObj.getPayload());
+            return ResponseEntity.ok(jwtResponse);
+
+        } catch (GeneralSecurityException | IOException e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Xác thực Google thất bại"));
+        }
+    }
+
+    @GetMapping("/verify-link-account")
+    public ResponseEntity<?> verifyLinkAccount(@RequestParam String token) {
+        authService.verifyLinkAccount(token);
+        return ResponseEntity.ok("Liên kết tài khoản thành công!");
     }
 }
 
