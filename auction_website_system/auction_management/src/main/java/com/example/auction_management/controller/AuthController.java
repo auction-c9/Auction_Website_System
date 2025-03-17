@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.annotation.Validated;
@@ -106,6 +107,7 @@ public class AuthController {
         Optional<Account> account = accountService.findAccountByUsername(username);
         return ResponseEntity.ok(account.orElseThrow(() -> new RuntimeException("User not found")));
     }
+    @PreAuthorize("hasRole('USER')") // Kiểm tra quyền
 
     @PostMapping("/google")
     public ResponseEntity<?> authenticateGoogle(@RequestBody Map<String, String> request) {

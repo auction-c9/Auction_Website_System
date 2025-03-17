@@ -45,10 +45,6 @@ public class Customer {
     @JoinColumn(name = "account_id", referencedColumnName = "account_id")
     private Account account;
 
-    @DecimalMin(value = "0.0", inclusive = true, message = "Số dư không được âm")
-    @Column(name = "balance", columnDefinition = "DECIMAL(10,2) DEFAULT 0")
-    private BigDecimal balance;
-
     @Min(value = 0, message = "Đánh giá không được nhỏ hơn 0")
     @Column(name = "rating", columnDefinition = "INT")
     private Integer rating;

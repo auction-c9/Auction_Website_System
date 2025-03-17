@@ -75,7 +75,6 @@ public class SecurityConfig {
                                 "/api/auth/google"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-
                         // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
 
