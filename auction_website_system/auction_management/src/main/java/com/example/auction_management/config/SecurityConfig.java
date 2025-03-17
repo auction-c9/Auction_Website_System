@@ -21,8 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -61,6 +59,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/ws-auction/**").permitAll()
+                        // Cho phép truy cập không cần đăng nhập:
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
@@ -75,11 +75,14 @@ public class SecurityConfig {
                                 "/api/auth/google"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
                         // Yêu cầu đăng nhập (authenticated) cho một số đường dẫn:
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
+
                         // Chỉ cho phép người dùng có ROLE_USER truy cập /api/bids/**
                         // (vì ta đã gán ROLE_USER ở CustomUserDetailsService)
                         .requestMatchers("/api/bids/**").hasRole("USER")
+
                         // Bất kỳ request nào khác cũng cần authenticated
                         .anyRequest().authenticated()
                 )

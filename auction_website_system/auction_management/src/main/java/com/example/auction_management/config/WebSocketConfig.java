@@ -12,15 +12,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic"); // Kênh để client subscribe
-        config.setApplicationDestinationPrefixes("/app"); // Prefix để client gửi message
+        config.enableSimpleBroker("/topic"); // Sub kênh nhận
+        config.setApplicationDestinationPrefixes("/app"); // Gửi lên server
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-auction") // Endpoint websocket
-                .setAllowedOrigins("*")
-                .withSockJS(); // Hỗ trợ SockJS fallback
+        registry.addEndpoint("/ws-auction").setAllowedOrigins("http://localhost:3000").withSockJS(); // Đường dẫn WS
     }
 }
-

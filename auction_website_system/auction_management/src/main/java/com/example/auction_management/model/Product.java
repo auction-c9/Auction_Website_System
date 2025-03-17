@@ -4,18 +4,17 @@ import com.fasterxml.jackson.annotation.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-// Product.java
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "products")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -52,8 +51,13 @@ public class Product {
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;
 
-    // Thêm quan hệ với Account (người đăng tin)
+    // Quan hệ với Account (người đăng tin)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", columnDefinition = "INT")
     private Account account;
+
+    // Nếu ProductService đang gọi getIsDeleted() thì đảm bảo có getter này:
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
 }
