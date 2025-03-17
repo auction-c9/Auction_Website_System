@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "Bid_Auction_API_Test",
+    "_postman_id": "b3f880d8-4d6d-4a4e-9df2-56e3d8305a4d",
+    "description": "Collection kiểm tra API đặt giá đấu giá (Bid API)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Đặt giá thành công",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"auctionId\": 1,\n    \"bidAmount\": 150.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bids",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bids"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02. Đặt giá không đăng nhập (401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"auctionId\": 1,\n    \"bidAmount\": 150.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bids",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bids"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03. Đặt giá thiếu auctionId (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bidAmount\": 150.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bids",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bids"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04. Đặt giá thấp hơn giá hiện tại (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"auctionId\": 1,\n    \"bidAmount\": 50.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bids",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bids"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05. Đặt giá vào phiên đấu giá đã kết thúc (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"auctionId\": 999,\n    \"bidAmount\": 200.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bids",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bids"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "access_token",
+      "value": "eyJhbGciOiJIUzUxMiJ9.eyJjdXN0b21lcklkIjoxLCJzdWIiOiJuaGF0dG0iLCJpYXQiOjE3NDIwNjIwMDEsImV4cCI6MTc0MjA2NTYwMX0.net8otULAAsywNkxX_eYoHDwwlo8ltHuyilAR3PtRBp3StaHiglyMsbYG7Ge2hEXWD6vltzaNwFKhPuru7iOog"
+    }
+  ]
+}

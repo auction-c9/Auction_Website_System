@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,6 +16,11 @@ public class TransactionDTO {
     private Integer customerId;
     private Integer auctionId;
     private Double amount;
+    private String transactionType;
     private String paymentMethod;
     private String status;
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private String returnUrl; // Thêm thuộc tính này
+
+
 }

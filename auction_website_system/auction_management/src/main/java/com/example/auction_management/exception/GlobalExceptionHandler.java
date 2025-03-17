@@ -2,8 +2,7 @@ package com.example.auction_management.exception;
 
 import com.example.auction_management.dto.ErrorResponse;
 import com.example.auction_management.service.impl.BidService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,90 +16,53 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    // -------- AUTH EXCEPTION -------- //
 
-    // Xử lý lỗi xác thực sai tài khoản, mật khẩu
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ErrorResponse handleBadCredentialsException(BadCredentialsException ex) {
-        log.error("BadCredentialsException:", ex);
-        return ErrorResponse.builder()
-                .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .message("Tên đăng nhập hoặc mật khẩu không đúng")
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.error("Authentication failed:", ex);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Tên đăng nhập hoặc mật khẩu không đúng");
     }
 
-    // Xử lý lỗi không có quyền truy cập
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleAccessDeniedException(AccessDeniedException ex) {
-        log.error("AccessDeniedException:", ex);
-        return ErrorResponse.builder()
-                .statusCode(HttpStatus.FORBIDDEN.value())
-                .message("Bạn không có quyền truy cập tài nguyên này")
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.error("Access denied:", ex);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập tài nguyên này");
     }
 
-    // Xử lý lỗi tạo sản phẩm
+    // -------- PRODUCT EXCEPTION -------- //
+
     @ExceptionHandler(ProductCreationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleProductCreationException(ProductCreationException ex) {
-        log.error("ProductCreationException:", ex);
-        return ErrorResponse.builder()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.error("Product creation error:", ex);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    // Xử lý các exception liên quan đến bid
-    @ExceptionHandler({
-            BidService.AuctionNotFoundException.class,
-            BidService.CustomerNotFoundException.class,
-            BidService.AuctionNotActiveException.class,
-            BidService.AuctionEndedException.class,
-            BidService.BidAmountTooLowException.class
-    })
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleBidExceptions(RuntimeException ex) {
-        log.error("Bid related exception:", ex);
-        return ErrorResponse.builder()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
+    @ExceptionHandler(ProductNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleProductNotFoundException(ProductNotFoundException ex) {
+        log.error("Product not found:", ex);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    // Xử lý IllegalArgumentException
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.error("IllegalArgumentException:", ex);
-        ErrorResponse response = ErrorResponse.builder()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.badRequest().body(response);
+    @ExceptionHandler(UnauthorizedActionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleUnauthorizedActionException(UnauthorizedActionException ex) {
+        log.error("Unauthorized action:", ex);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    // Xử lý NullPointerException
-    @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
-        log.error("NullPointerException:", ex);
-        ErrorResponse response = ErrorResponse.builder()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .message("Lỗi: Giá trị không được null")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.badRequest().body(response);
-    }
+    // -------- BID EXCEPTION -------- //
 
-    // Xử lý các lỗi validation từ @Valid
+    // -------- VALIDATION EXCEPTION -------- //
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -119,14 +81,35 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    // Xử lý tất cả các exception khác (Internal Server Error)
+    // -------- COMMON JAVA EXCEPTION -------- //
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.error("IllegalArgumentException:", ex);
+        return buildErrorResponseEntity(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
+        log.error("NullPointerException:", ex);
+        return buildErrorResponseEntity(HttpStatus.BAD_REQUEST, "Lỗi: Giá trị không được null");
+    }
+
+    // -------- ALL OTHER UNHANDLED -------- //
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleAllUncaughtException(Exception ex) {
         log.error("Unhandled exception:", ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + ex.getMessage());
+    }
+
+    // -------- UTIL METHODS -------- //
+
+    private ErrorResponse buildErrorResponse(HttpStatus status, String message) {
         return ErrorResponse.builder()
-                .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Lỗi hệ thống: " + ex.getMessage())
+                .statusCode(status.value())
+                .message(message)
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -173,5 +156,10 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    private ResponseEntity<ErrorResponse> buildErrorResponseEntity(HttpStatus status, String message) {
+        ErrorResponse response = buildErrorResponse(status, message);
+        return ResponseEntity.status(status).body(response);
     }
 }

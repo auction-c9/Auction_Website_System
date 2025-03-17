@@ -7,9 +7,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,6 +20,8 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "auctions")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -60,7 +61,7 @@ public class Auction {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private AuctionStatus status = AuctionStatus.pending;
+    private AuctionStatus status;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -70,12 +71,12 @@ public class Auction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Thêm quan hệ OneToMany để lấy danh sách các Bid của phiên đấu giá
+    // Đổi tên trường để khớp với Service (getBids)
     @OneToMany(mappedBy = "auction", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JsonIgnoreProperties("auction")
-    private List<Bid> bidHistory = new ArrayList<>();
+    private List<Bid> bids = new ArrayList<>();
 
     public enum AuctionStatus {
-        pending, active, completed, canceled
+        pending, active, ended, canceled
     }
 }

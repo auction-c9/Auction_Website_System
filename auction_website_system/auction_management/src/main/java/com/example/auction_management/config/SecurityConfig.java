@@ -94,7 +94,8 @@ public class SecurityConfig {
                                 "/api/auth/google",
                                 "api/auth/forgot-password",
                                 "api/auth/verify-reset-code",
-                                "api/auth/reset-password"
+                                "api/auth/reset-password",
+                                "/ws-auction/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
@@ -112,6 +113,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://yourdomain.com"));
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://yourdomain.com"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization"));

@@ -1,17 +1,19 @@
 package com.example.auction_management.controller;
 
 import com.example.auction_management.dto.BidDTO;
+import com.example.auction_management.dto.BidRequestDTO;
 import com.example.auction_management.dto.BidResponseDTO;
 import com.example.auction_management.service.impl.BidService;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/bids")
@@ -22,28 +24,42 @@ public class BidController {
     private final BidService bidService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @PostMapping
-    public ResponseEntity<?> placeBid(@RequestBody BidDTO bidDTO, HttpServletRequest request, Authentication authentication) {
-        System.out.println("Received bid request: " + bidDTO); // Debug log
-        System.out.println("Token received: " + request.getHeader("Authorization")); // Kiểm tra token
-
-        // Kiểm tra xác thực
+    /**
+     * API đặt giá mới cho phiên đấu giá
+     */
+    @PostMapping("/auction/{auctionId}")
+    public ResponseEntity<BidResponseDTO> placeBid(@PathVariable Integer auctionId,
+                                                   @Valid @RequestBody BidRequestDTO bidRequestDTO,
+                                                   Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn cần đăng nhập để đặt giá!"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(BidResponseDTO.builder().message("Bạn cần đăng nhập để đặt giá!").build());
         }
 
-        if (bidDTO.getCustomerId() == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Customer ID is missing!"));
-        }
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Integer customerId = bidService.getCustomerIdFromUsername(userDetails.getUsername());
 
-        try {
-            BidResponseDTO bidResponse = bidService.placeBid(bidDTO);
-            return ResponseEntity.ok(Map.of(
-                    "message", "Đặt giá thành công!",
-                    "bid", bidResponse
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        // Tạo BidDTO
+        BidDTO bidDTO = new BidDTO();
+        bidDTO.setAuctionId(auctionId);
+        bidDTO.setCustomerId(customerId);
+        bidDTO.setBidAmount(bidRequestDTO.getBidAmount());
+
+        BidResponseDTO bidResponse = bidService.placeBid(bidDTO);
+
+        // Gửi qua websocket
+        messagingTemplate.convertAndSend("/topic/auctions/" + auctionId, bidResponse);
+
+        return ResponseEntity.ok(bidResponse);
+    }
+
+
+    /**
+     * API lấy lịch sử đấu giá theo auctionId
+     */
+    @GetMapping("/auction/{auctionId}")
+    public ResponseEntity<List<BidResponseDTO>> getBidHistory(@PathVariable Integer auctionId) {
+        List<BidResponseDTO> bidHistory = bidService.getBidHistoryByAuctionId(auctionId);
+        return ResponseEntity.ok(bidHistory);
     }
 }

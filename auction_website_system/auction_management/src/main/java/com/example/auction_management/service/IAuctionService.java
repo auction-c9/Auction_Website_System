@@ -5,9 +5,11 @@ import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface IAuctionService extends IService<Auction, Integer> {
     List<Auction> findByStatus(AuctionStatus status);
-    List<Auction> findByProduct(Product product);
+    Optional<Auction> findByProduct(Product product);
+
     List<Auction> findOngoingAuctions();
 }

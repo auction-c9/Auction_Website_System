@@ -2,21 +2,21 @@ package com.example.auction_management.service.impl;
 
 import com.example.auction_management.dto.BidDTO;
 import com.example.auction_management.dto.BidResponseDTO;
-import com.example.auction_management.model.Auction;
-import com.example.auction_management.model.Bid;
-import com.example.auction_management.model.Customer;
-import com.example.auction_management.repository.AuctionRepository;
-import com.example.auction_management.repository.BidRepository;
-import com.example.auction_management.repository.CustomerRepository;
+import com.example.auction_management.exception.*;
+import com.example.auction_management.model.*;
+import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IBidService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +25,8 @@ public class BidService implements IBidService {
     private final BidRepository bidRepository;
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
+
+    // ---------------------- CRUD BASIC ----------------------
 
     @Override
     public List<Bid> findAll() {
@@ -43,89 +45,113 @@ public class BidService implements IBidService {
 
     @Override
     public void deleteById(Integer id) {
-        bidRepository.deleteById(id);
+        Bid bid = bidRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giá thầu với ID: " + id));
+        bidRepository.delete(bid);
     }
 
+    // ---------------------- PLACE BID LOGIC ----------------------
     @Override
     @Transactional
     public BidResponseDTO placeBid(BidDTO bidDTO) {
-        // Lấy thông tin phiên đấu giá theo ID
+        // Lấy thông tin phiên đấu giá
         Auction auction = auctionRepository.findById(bidDTO.getAuctionId())
-                .orElseThrow(() -> new AuctionNotFoundException("Phiên đấu giá không tồn tại!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!"));
 
-        // Lấy thông tin khách hàng theo ID
-        Customer customer = customerRepository.findById(bidDTO.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException("Khách hàng không tồn tại!"));
+        // Kiểm tra phiên đấu giá còn hoạt động và chưa kết thúc
+        validateAuctionStatus(auction);
 
-        // Kiểm tra phiên đấu giá còn hoạt động
-        if (!auction.getStatus().equals(Auction.AuctionStatus.active)) {
-            throw new AuctionNotActiveException("Phiên đấu giá này không còn hoạt động!");
+        // Lấy thông tin người dùng đang đăng nhập
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        Customer customer = customerRepository.findByAccountUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin khách hàng!"));
+
+        // ✅ Kiểm tra không cho chủ bài đấu giá đặt giá
+        if (auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
+            throw new InvalidActionException("Bạn không thể đặt giá cho bài đấu giá của chính mình!");
         }
 
-        // Kiểm tra thời gian phiên đấu giá
-        LocalDateTime now = LocalDateTime.now();
-        if (auction.getAuctionEndTime().isBefore(now)) {
-            throw new AuctionEndedException("Phiên đấu giá đã kết thúc!");
-        }
+        // Kiểm tra giá đấu
+        validateBidAmount(auction, bidDTO.getBidAmount());
 
-        // Kiểm tra giá thầu có hợp lệ không
-        // Lưu ý: Mặc dù chúng ta không cập nhật currentPrice trong Auction,
-        // chúng ta vẫn dùng giá hiện tại của phiên đấu giá để tính giá thầu tối thiểu
-        BigDecimal minNextBid = auction.getCurrentPrice().add(auction.getBidStep());
-        if (bidDTO.getBidAmount().compareTo(minNextBid) < 0) {
-            throw new BidAmountTooLowException("Giá đấu phải từ " + minNextBid + " trở lên!");
-        }
+        // Cập nhật lại trạng thái winner của các bid cũ
+        resetOldBids(auction);
 
-        // Reset trạng thái các bid cũ về isWinner = false
-        List<Bid> auctionBids = bidRepository.findByAuction(auction);
-        auctionBids.forEach(b -> b.setIsWinner(false));
-        bidRepository.saveAll(auctionBids);
+        // Tạo bid mới
+        Bid newBid = new Bid();
+        newBid.setAuction(auction);
+        newBid.setCustomer(customer);
+        newBid.setBidAmount(bidDTO.getBidAmount());
+        newBid.setBidTime(LocalDateTime.now());
+        newBid.setIsWinner(true); // Tạm thời gán là người thắng cao nhất
 
-        // Không cập nhật giá hiện tại của phiên đấu giá
-        // auction.setCurrentPrice(bidDTO.getBidAmount());
-        // auctionRepository.save(auction);
-
-        // Tạo bid mới với giá đấu (bidAmount) từ request
-        Bid bid = new Bid();
-        bid.setAuction(auction);
-        bid.setCustomer(customer);
-        bid.setBidAmount(bidDTO.getBidAmount());
-        bid.setIsWinner(true);
-        bid.setBidTime(now);
-
-        Bid savedBid = bidRepository.save(bid);
+        Bid savedBid = bidRepository.save(newBid);
 
         // Tạo DTO trả về
+        return mapToBidResponseDTO(savedBid);
+    }
+    // ---------------------- HISTORY & WINNER ----------------------
+
+
+    public List<BidResponseDTO> getBidHistoryByAuctionId(Integer auctionId) {
+        List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId); // Lấy danh sách bid theo auctionId, giảm dần
+        if (bids == null || bids.isEmpty()) {
+            return new ArrayList<>(); // Trả về rỗng nếu chưa có bid
+        }
+
+        // Chuyển entity sang DTO
+        return bids.stream().map(bid -> BidResponseDTO.builder()
+                        .bidId(bid.getBidId())
+                        .auctionId(bid.getAuction().getAuctionId())
+                        .customerId(bid.getCustomer().getCustomerId())
+                        .bidAmount(bid.getBidAmount())
+                        .bidTime(bid.getBidTime())
+                        .message("Lịch sử đấu giá")
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    public Optional<Bid> getCurrentHighestBid(Integer auctionId) {
+        return bidRepository.findTopByAuctionOrderByBidAmountDesc(auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!")));
+    }
+    public Integer getCustomerIdFromUsername(String username) {
+        Customer customer = customerRepository.findByAccountUsername(username)
+                .orElseThrow(() -> new CustomerNotFoundException("Không tìm thấy tài khoản khách hàng!"));
+        return customer.getCustomerId();
+    }
+    // ---------------------- SUPPORT METHODS ----------------------
+    private void validateAuctionStatus(Auction auction) {
+        if (!auction.getStatus().equals(Auction.AuctionStatus.active)) {
+            throw new InvalidActionException("Phiên đấu giá không còn hoạt động!");
+        }
+        if (auction.getAuctionEndTime().isBefore(LocalDateTime.now())) {
+            throw new InvalidActionException("Phiên đấu giá đã kết thúc!");
+        }
+    }
+
+    private void validateBidAmount(Auction auction, BigDecimal bidAmount) {
+        BigDecimal minNextBid = auction.getCurrentPrice().add(auction.getBidStep());
+        if (bidAmount.compareTo(minNextBid) < 0) {
+            throw new InvalidActionException("Giá đấu phải tối thiểu từ " + minNextBid + " trở lên!");
+        }
+    }
+
+    private void resetOldBids(Auction auction) {
+        List<Bid> oldBids = bidRepository.findByAuction(auction);
+        oldBids.forEach(b -> b.setIsWinner(false));
+        bidRepository.saveAll(oldBids);
+    }
+
+    private BidResponseDTO mapToBidResponseDTO(Bid bid) {
         return new BidResponseDTO(
-                savedBid.getBidId(),
-                auction.getAuctionId(),
-                customer.getCustomerId(),
-                savedBid.getBidAmount(),
-                savedBid.getBidTime(),
-                savedBid.getIsWinner()
+                bid.getBidId(),
+                bid.getAuction().getAuctionId(),
+                bid.getCustomer().getCustomerId(),
+                bid.getBidAmount(),
+                bid.getBidTime(),
+                bid.getIsWinner(),
+                "Đặt giá thành công!"
         );
-    }
-
-
-
-    // --- Custom Exceptions ---
-    public static class AuctionNotFoundException extends RuntimeException {
-        public AuctionNotFoundException(String message) { super(message); }
-    }
-
-    public static class CustomerNotFoundException extends RuntimeException {
-        public CustomerNotFoundException(String message) { super(message); }
-    }
-
-    public static class AuctionNotActiveException extends RuntimeException {
-        public AuctionNotActiveException(String message) { super(message); }
-    }
-
-    public static class AuctionEndedException extends RuntimeException {
-        public AuctionEndedException(String message) { super(message); }
-    }
-
-    public static class BidAmountTooLowException extends RuntimeException {
-        public BidAmountTooLowException(String message) { super(message); }
     }
 }
