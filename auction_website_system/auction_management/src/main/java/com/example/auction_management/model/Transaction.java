@@ -26,7 +26,6 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "auction_id", nullable = false)
     private Auction auction;
-
     private Double amount;
     private String transactionType;
     private String paymentMethod; // "VNPAY" hoặc "PAYPAL"
@@ -35,6 +34,4 @@ public class Transaction {
     @Column(name = "transaction_id", unique = true)
     private String transactionId; // Mã giao dịch dùng để đối soát với PayPal/VNPAY
     private LocalDateTime createdAt = LocalDateTime.now();
-
-
 }
