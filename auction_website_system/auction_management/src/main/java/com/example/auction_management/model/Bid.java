@@ -3,9 +3,7 @@ package com.example.auction_management.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -43,5 +41,10 @@ public class Bid {
     private LocalDateTime bidTime;
 
     @Column(name = "is_winner", nullable = false)
-    private Boolean isWinner = false; // Set mặc định FALSE
+    private Boolean isWinner = false;
+
+    // Thêm getter để hỗ trợ ProductService khi gọi bid.getAccount()
+    public Account getAccount() {
+        return customer != null ? customer.getAccount() : null;
+    }
 }

@@ -11,10 +11,8 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class BidDTO {
-    private Integer auctionId;
-    private Integer customerId;
+public class BidRequestDTO {
+    @DecimalMin(value = "0.01", message = "Giá đấu phải lớn hơn 0")
+    @NotNull(message = "Giá đấu không được để trống")
     private BigDecimal bidAmount;
 }
-
-
