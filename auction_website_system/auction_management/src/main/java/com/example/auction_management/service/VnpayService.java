@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -29,7 +30,7 @@ public class VnpayService {
     @Autowired
     private AuctionRepository auctionRepository;
 
-    public String createPaymentUrl(Integer customerId, Integer auctionId, Double amount) {
+    public String createPaymentUrl(Integer customerId, Integer auctionId, Double amount, String returnUrl) {
         if (amount == null || amount <= 0) {
             throw new IllegalArgumentException("Số tiền phải lớn hơn 0");
         }
@@ -53,8 +54,10 @@ public class VnpayService {
         transaction.setCustomer(customer);
         transaction.setAuction(auction);
         transaction.setAmount(amount);
+        transaction.setTransactionType("DEPOSIT");
         transaction.setPaymentMethod("VNPAY");
         transaction.setStatus("PENDING");
+        transaction.setCreatedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
 
         String vnp_TmnCode = VnpayConfig.vnp_TmnCode;
@@ -70,7 +73,9 @@ public class VnpayService {
         vnp_Params.put("vnp_OrderInfo", "Thanh toán đặt cọc tài khoản: " + customerId);
         vnp_Params.put("vnp_OrderType", orderType);
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", VnpayConfig.vnp_ReturnUrl);
+        String callbackUrl = "http://localhost:8080/api/transactions/vnpay-return?returnUrl="
+                + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8);
+        vnp_Params.put("vnp_ReturnUrl", callbackUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
