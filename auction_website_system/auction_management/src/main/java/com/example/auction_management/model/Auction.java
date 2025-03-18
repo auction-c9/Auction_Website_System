@@ -71,10 +71,16 @@ public class Auction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isDeleted = false;
+
     // Đổi tên trường để khớp với Service (getBids)
     @OneToMany(mappedBy = "auction", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JsonIgnoreProperties("auction")
     private List<Bid> bids = new ArrayList<>();
+
+    @OneToMany(mappedBy = "auction", cascade = CascadeType.ALL)
+    private List<AuctionRegistration> registrations = new ArrayList<>();
 
     public enum AuctionStatus {
         pending, active, ended, canceled

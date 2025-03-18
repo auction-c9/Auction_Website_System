@@ -28,4 +28,6 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     @Query("SELECT a FROM Auction a JOIN FETCH a.product p JOIN FETCH p.account WHERE a.auctionId = :id")
     Optional<Auction> findAuctionWithProductAndAccount(@Param("id") Integer id);
 
+    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
+
 }
