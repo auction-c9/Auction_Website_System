@@ -79,9 +79,6 @@ public class Auction {
     @JsonIgnoreProperties("auction")
     private List<Bid> bids = new ArrayList<>();
 
-    @OneToMany(mappedBy = "auction", cascade = CascadeType.ALL)
-    private List<AuctionRegistration> registrations = new ArrayList<>();
-
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
