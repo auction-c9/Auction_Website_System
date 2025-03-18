@@ -1,6 +1,7 @@
 package com.example.auction_management.repository;
 
 import com.example.auction_management.model.Account;
+import com.example.auction_management.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,7 @@ public interface AccountRepository extends JpaRepository<Account,Integer> {
 
     boolean existsByUsername(String username);
 
-    @Query("SELECT a.role.name FROM accounts a WHERE a.username = :username")
-    Optional<String> findRoleNameByUsername(@Param("username") String username);
+    @Query("SELECT p FROM Product p JOIN FETCH p.account WHERE p.productId = :id")
+    Product findProductWithAccount(@Param("id") Integer id);
+
 }
