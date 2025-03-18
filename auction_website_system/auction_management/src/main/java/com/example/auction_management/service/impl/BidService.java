@@ -104,7 +104,7 @@ public class BidService implements IBidService {
             return new ArrayList<>(); // Trả về rỗng nếu chưa có bid
         }
 
-        // Chuyển entity sang DTO
+        // CHANGE: Thêm thông tin user từ bid.getAccount() vào DTO để hiển thị profile
         return bids.stream().map(bid -> BidResponseDTO.builder()
                         .bidId(bid.getBidId())
                         .auctionId(bid.getAuction().getAuctionId())
@@ -112,6 +112,7 @@ public class BidService implements IBidService {
                         .bidAmount(bid.getBidAmount())
                         .bidTime(bid.getBidTime())
                         .message("Lịch sử đấu giá")
+                        .user(bid.getAccount()) // Thông tin tài khoản (Account) chứa accountId và username
                         .build())
                 .collect(Collectors.toList());
     }
@@ -156,7 +157,8 @@ public class BidService implements IBidService {
                 bid.getBidAmount(),
                 bid.getBidTime(),
                 bid.getIsWinner(),
-                "Đặt giá thành công!"
+                "Đặt giá thành công!",
+                bid.getAccount()
         );
     }
     /**

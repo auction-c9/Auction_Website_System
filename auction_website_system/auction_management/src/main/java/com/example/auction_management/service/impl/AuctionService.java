@@ -1,6 +1,7 @@
 package com.example.auction_management.service.impl;
 
 import com.example.auction_management.exception.AuctionNotFoundException;
+import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
@@ -32,7 +33,7 @@ public class AuctionService implements IAuctionService {
 
     @Override
     public Optional<Auction> findById(Integer id) {
-        return auctionRepository.findById(id);
+        return auctionRepository.findAuctionWithProductAndAccount(id);
     }
 
     @Override
@@ -137,5 +138,11 @@ public class AuctionService implements IAuctionService {
             throw new UnauthorizedActionException("Bạn không có quyền trên phiên đấu giá này.");
         }
         return auction;
+
     }
+    public Auction getAuctionById(Integer id) {
+        return auctionRepository.findAuctionWithProductAndAccount(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+    }
+
 }

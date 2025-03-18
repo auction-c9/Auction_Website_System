@@ -52,7 +52,7 @@ public class Product {
     private Boolean isDeleted;
 
     // Quan hệ với Account (người đăng tin)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "account_id", columnDefinition = "INT")
     private Account account;
 
