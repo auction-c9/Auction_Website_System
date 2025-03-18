@@ -1,5 +1,6 @@
 package com.example.auction_management.dto;
 
+import com.example.auction_management.model.Account; // Import Account nếu cần
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,4 +22,7 @@ public class BidResponseDTO {
     private LocalDateTime bidTime;
     private Boolean isWinner;
     private String message;
+
+    // THÊM TRƯỜNG USER ĐỂ HIỂN THỊ THÔNG TIN TÀI KHOẢN NGƯỜI ĐẤU GIÁ
+    private Account user;
 }
