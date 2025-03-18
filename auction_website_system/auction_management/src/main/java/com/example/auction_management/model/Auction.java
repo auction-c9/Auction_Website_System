@@ -60,7 +60,7 @@ public class Auction {
     private BigDecimal bidStep;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false,length = 10)
     private AuctionStatus status;
 
     @CreationTimestamp
@@ -82,4 +82,5 @@ public class Auction {
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
+
 }

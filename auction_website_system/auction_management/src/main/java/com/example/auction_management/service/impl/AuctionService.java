@@ -36,8 +36,8 @@ public class AuctionService implements IAuctionService {
     }
 
     @Override
-    public Optional<Auction> findById(Integer id) {
-        return auctionRepository.findAuctionWithProductAndAccount(id);
+    public Optional<Auction> findById(Integer integer) {
+        return auctionRepository.findById(integer);
     }
 
     @Override
@@ -144,9 +144,30 @@ public class AuctionService implements IAuctionService {
         return auction;
 
     }
-    public Auction getAuctionById(Integer id) {
-        return auctionRepository.findAuctionWithProductAndAccount(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+    @Transactional
+    public void updateAuctionStatuses() {
+        auctionRepository.updateAuctionStatuses(LocalDateTime.now());
+    }
+    public List<Auction> findAllWithUpdatedStatus() {
+        List<Auction> auctions = auctionRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Auction auction : auctions) {
+            if (auction.getAuctionStartTime() == null || auction.getAuctionEndTime() == null) {
+                System.out.println("Lỗi: Phiên đấu giá ID " + auction.getAuctionId() + " có thời gian null.");
+                continue; // Bỏ qua nếu dữ liệu không hợp lệ
+            }
+
+            if (now.isBefore(auction.getAuctionStartTime())) {
+                auction.setStatus(Auction.AuctionStatus.pending);
+            } else if (now.isAfter(auction.getAuctionStartTime()) && now.isBefore(auction.getAuctionEndTime())) {
+                auction.setStatus(Auction.AuctionStatus.active);
+            } else {
+                auction.setStatus(Auction.AuctionStatus.ended);
+            }
+        }
+
+        return auctionRepository.saveAll(auctions);
     }
 
     public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {

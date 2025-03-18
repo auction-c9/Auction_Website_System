@@ -31,7 +31,7 @@ public class AuctionController {
             List<Auction> auctions = auctionService.findAll();
             return ResponseEntity.ok(auctions);
         } catch (Exception e) {
-            // Bạn có thể ghi log exception ở đây để kiểm tra lỗi chi tiết
+            e.printStackTrace(); // In lỗi chi tiết ra console
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
