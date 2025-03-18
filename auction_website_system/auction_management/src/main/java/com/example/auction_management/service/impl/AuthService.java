@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.example.auction_management.config.CloudinaryConfig;
 import com.example.auction_management.dto.AccountDto;
+import com.example.auction_management.dto.CustomerDTO;
 import com.example.auction_management.dto.JwtResponse;
 import com.example.auction_management.dto.LoginRequest;
 import com.example.auction_management.exception.*;
@@ -12,6 +13,7 @@ import com.example.auction_management.repository.*;
 import com.example.auction_management.service.EmailService;
 import com.example.auction_management.util.JwtTokenProvider;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +23,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -76,8 +80,8 @@ public class AuthService {
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequest.getUsername());
 
-        String token = jwtTokenProvider.generateToken(userDetails.getUsername(), customerId, role);
-        return new JwtResponse(token, customerId, role);
+        String token = jwtTokenProvider.generateToken(loginRequest.getUsername(), customerId, role);
+        return new JwtResponse(token, customerId, role, loginRequest.getUsername());
     }
 
     public void register(AccountDto accountDto, String storedCaptchaAnswer) {
@@ -200,11 +204,12 @@ public class AuthService {
         // Tạo tài khoản mới
         Account newAccount = createSocialAccount(email);
         Customer newCustomer = createSocialCustomer(newAccount, name, email, pictureUrl);
-        // Thêm logic lấy role từ account
         String role = newAccount.getRole().getName();
+        String username = newAccount.getUsername();
 
-        return new JwtResponse(jwtTokenProvider.generateToken(email, newCustomer.getCustomerId(), role),
-                newCustomer.getCustomerId(), role);
+        return new JwtResponse(
+                jwtTokenProvider.generateToken(username, newCustomer.getCustomerId(), role),
+                newCustomer.getCustomerId(), role, username);
     }
 
     private JwtResponse handleExistingAccount(Account account) {
@@ -216,8 +221,9 @@ public class AuthService {
         }
 
         String role = account.getRole().getName();
-        String token = jwtTokenProvider.generateToken(account.getUsername(), customer.getCustomerId(),role);
-        return new JwtResponse(token, customer.getCustomerId(),role);
+        String username = account.getUsername();
+        String token = jwtTokenProvider.generateToken(username, customer.getCustomerId(),role);
+        return new JwtResponse(token, customer.getCustomerId(),role,username);
     }
 
     private Account createSocialAccount(String email) {
@@ -343,5 +349,90 @@ public class AuthService {
 
         // Xóa token đã sử dụng
         tokenRepository.deleteByIdentifierAndTokenType(username, Token.TokenType.PASSWORD_RESET);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerDTO getCustomerProfile(String username) {
+        Customer customer = customerRepository.findByAccountUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
+
+        return mapToDTO(customer);
+    }
+
+    // Cập nhật profile
+    @Transactional
+    public CustomerDTO updateCustomerProfile(String username, CustomerDTO customerDTO) {
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Tài khoản không tồn tại"));
+
+        Customer customer = customerRepository.findByAccount(account)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy thông tin cá nhân"));
+
+        // Kiểm tra mật khẩu nếu có thay đổi
+        if (StringUtils.hasText(customerDTO.getNewPassword())) {
+            validatePasswordChange(account, customerDTO);
+            account.setPassword(passwordEncoder.encode(customerDTO.getNewPassword()));
+        }
+
+        // Cập nhật thông tin cơ bản
+        customer.setName(customerDTO.getName());
+        customer.setDob(customerDTO.getDob());
+        customer.setPhone(customerDTO.getPhone());
+        customer.setIdentityCard(customerDTO.getIdentityCard());
+        customer.setAddress(customerDTO.getAddress());
+
+        // Xử lý upload ảnh
+        if (customerDTO.getAvatarFile() != null && !customerDTO.getAvatarFile().isEmpty()) {
+            uploadAndUpdateAvatar(customer, customerDTO.getAvatarFile());
+        }
+
+        customerRepository.save(customer);
+        return mapToDTO(customer);
+    }
+
+    private void validatePasswordChange(Account account, CustomerDTO dto) {
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), account.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu hiện tại không đúng");
+        }
+
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            throw new PasswordMismatchException("Mật khẩu mới không khớp");
+        }
+    }
+
+    private void uploadAndUpdateAvatar(Customer customer, MultipartFile file) {
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap("folder", "avatars"));
+
+            String imageUrl = (String) uploadResult.get("url");
+
+            // Tạo hoặc cập nhật ảnh
+            Image avatar = customer.getAvatar();
+            if (avatar == null) {
+                avatar = new Image();
+                avatar.setImageUrl(imageUrl);
+                imageRepository.save(avatar);
+                customer.setAvatar(avatar);
+            } else {
+                avatar.setImageUrl(imageUrl);
+                imageRepository.save(avatar);
+            }
+        } catch (IOException e) {
+            throw new FileUploadException("Lỗi upload ảnh đại diện");
+        }
+    }
+
+    private CustomerDTO mapToDTO(Customer customer) {
+        CustomerDTO dto = new CustomerDTO();
+        dto.setUsername(customer.getAccount().getUsername());
+        dto.setName(customer.getName());
+        dto.setEmail(customer.getEmail());
+        dto.setDob(customer.getDob());
+        dto.setPhone(customer.getPhone());
+        dto.setIdentityCard(customer.getIdentityCard());
+        dto.setAddress(customer.getAddress());
+        dto.setAvatarUrl(customer.getAvatar() != null ? customer.getAvatar().getImageUrl() : null);
+        return dto;
     }
 }
