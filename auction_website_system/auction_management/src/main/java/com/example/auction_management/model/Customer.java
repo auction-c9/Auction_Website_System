@@ -35,6 +35,9 @@ public class Customer {
     @Column(name = "phone", columnDefinition = "VARCHAR(50)")
     private String phone;
 
+    @Column(name = "dob", columnDefinition = "DATE")
+    private LocalDate dob;
+
     @Column(name = "identity_card", columnDefinition = "VARCHAR(50)")
     private String identityCard;
 

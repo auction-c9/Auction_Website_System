@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -30,7 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        if (path.startsWith("/api/auth/") ||
+        if (path.startsWith("/api/auth/login") ||
+                path.equals("/api/auth/register") ||
+                path.equals("/api/auth/google") ||
+                path.equals("/api/auth/forgot-password") ||
                 path.startsWith("/api/auctions/") ||
                 path.startsWith("/api/categories/")) {
             return true;
@@ -55,7 +59,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new HashMap<String, Object>() {{ put("customerId", customerId); put("role",role); }});
+
+            // Thêm username vào details
+            Map<String, Object> details = new HashMap<>();
+            details.put("customerId", customerId);
+            details.put("role", role);
+            details.put("username", username);
+            authentication.setDetails(details);
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
         filterChain.doFilter(request, response);
