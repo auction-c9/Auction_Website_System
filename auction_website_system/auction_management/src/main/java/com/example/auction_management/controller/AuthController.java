@@ -1,9 +1,6 @@
 package com.example.auction_management.controller;
 
-import com.example.auction_management.dto.AccountDto;
-import com.example.auction_management.dto.ForgotPasswordDTO;
-import com.example.auction_management.dto.JwtResponse;
-import com.example.auction_management.dto.LoginRequest;
+import com.example.auction_management.dto.*;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.service.IAccountService;
 import com.example.auction_management.service.impl.AuthService;
@@ -29,7 +26,6 @@ import java.util.Optional;
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/auth")
-@PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
 public class AuthController {
     private final AuthService authService;
     private final CaptchaService captchaService;
@@ -44,10 +40,26 @@ public class AuthController {
     @Autowired
     public IAccountService accountService;
 
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @GetMapping("/profile")
+    public ResponseEntity<CustomerDTO> getProfile(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(authService.getCustomerProfile(username));
+    }
+
+    // Cập nhật thông tin cá nhân
+    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProfile(
+            @ModelAttribute CustomerDTO customerDTO,
+            Authentication authentication
+    ) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(authService.updateCustomerProfile(username, customerDTO));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         System.out.println("Received login request for username: " + loginRequest.getUsername());
-        System.out.println("Password: " + loginRequest.getPassword());
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 
@@ -111,14 +123,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
-    @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(Authentication authentication, String storedCaptchaAnswer) {
-        String username = authentication.getName();
-        Optional<Account> account = accountService.findAccountByUsername(username);
-        return ResponseEntity.ok(account.orElseThrow(() -> new RuntimeException("User not found")));
-    }
-    @PreAuthorize("hasRole('USER')") // Kiểm tra quyền
 
     @PostMapping("/google")
     public ResponseEntity<?> authenticateGoogle(@RequestBody Map<String, String> request) {
