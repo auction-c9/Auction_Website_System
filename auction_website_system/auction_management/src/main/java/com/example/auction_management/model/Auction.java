@@ -79,4 +79,5 @@ public class Auction {
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
+
 }
