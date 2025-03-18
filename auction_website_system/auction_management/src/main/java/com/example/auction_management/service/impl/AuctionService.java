@@ -144,5 +144,20 @@ public class AuctionService implements IAuctionService {
         return auctionRepository.findAuctionWithProductAndAccount(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
     }
+    public List<Auction> findAllWithUpdatedStatus() {
+        List<Auction> auctions = auctionRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Auction auction : auctions) {
+            if (now.isBefore(auction.getAuctionStartTime())) {
+                auction.setStatus(Auction.AuctionStatus.pending);
+            } else if (now.isAfter(auction.getAuctionStartTime()) && now.isBefore(auction.getAuctionEndTime())) {
+                auction.setStatus(Auction.AuctionStatus.active);
+            } else {
+                auction.setStatus(Auction.AuctionStatus.ended);
+            }
+        }
+        return auctionRepository.saveAll(auctions); // Cập nhật trạng thái vào DB
+    }
 
 }
