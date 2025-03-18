@@ -31,46 +31,59 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        if (path.startsWith("/api/auth/login") ||
-                path.equals("/api/auth/register") ||
-                path.equals("/api/auth/google") ||
-                path.equals("/api/auth/forgot-password") ||
-                path.startsWith("/api/auctions/") ||
-                path.startsWith("/api/categories/")) {
-            return true;
-        }
-        if (path.startsWith("/api/products/") && method.equals("GET")) {
-            return true;
-        }
-        return false;
+        return
+                // Các endpoint auth
+                path.startsWith("/api/auth/login") ||
+                        path.equals("/api/auth/register") ||
+                        path.equals("/api/auth/google") ||
+                        path.equals("/api/auth/forgot-password") ||
+
+                        // Các endpoint GET public trong /api/auctions
+                        (method.equals("GET") && (
+                                path.equals("/api/auctions") || // GET /api/auctions
+                                        path.startsWith("/api/auctions/status/") || // GET /api/auctions/status/*
+                                        path.startsWith("/api/auctions/ongoing") || // GET /api/auctions/ongoing
+                                        path.startsWith("/api/auctions/product/") || // GET /api/auctions/product/*
+                                        path.matches("/api/auctions/\\d+") // GET /api/auctions/{id} (ví dụ: /api/auctions/1)
+                        )) ||
+
+                        // Các endpoint GET public khác
+                        (method.equals("GET") && path.startsWith("/api/categories/")) ||
+                        (method.equals("GET") && path.startsWith("/api/products/"));
     }
 
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String token = getJwtFromRequest(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            String username = jwtTokenProvider.getUsernameFromToken(token);
-            Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
-            String role = jwtTokenProvider.getRoleFromToken(token);
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-            System.out.println("User authorities: " + userDetails.getAuthorities());
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            try {
+                // Lấy token từ header
+                String token = getJwtFromRequest(request);
+                if (token != null && jwtTokenProvider.validateToken(token)) {
+                    // Lấy thông tin từ token
+                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                    Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
+                    String role = jwtTokenProvider.getRoleFromToken(token);
 
-            // Thêm username vào details
-            Map<String, Object> details = new HashMap<>();
-            details.put("customerId", customerId);
-            details.put("role", role);
-            details.put("username", username);
-            authentication.setDetails(details);
+                    // Tạo UserDetails và Authentication
+                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    // Thêm customerId vào details
+                    Map<String, Object> details = new HashMap<>();
+                    details.put("customerId", customerId);
+                    authentication.setDetails(details);
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    // Thiết lập SecurityContext
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                logger.error("Cannot set authentication", e);
+            }
+            filterChain.doFilter(request, response);
         }
-        filterChain.doFilter(request, response);
-    }
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");

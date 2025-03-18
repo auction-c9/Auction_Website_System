@@ -1,5 +1,7 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.dto.RegisteredAuctionDTO;
+import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
@@ -7,6 +9,8 @@ import com.example.auction_management.service.impl.AuctionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -77,5 +81,39 @@ public class AuctionController {
     @GetMapping("/ongoing")
     public ResponseEntity<List<Auction>> getOngoingAuctions() {
         return ResponseEntity.ok(auctionService.findOngoingAuctions());
+    }
+
+    @GetMapping("/registered-history")
+    public ResponseEntity<List<RegisteredAuctionDTO>> getRegisteredAuctions(Authentication authentication) {
+        try {
+            // Kiểm tra authentication hợp lệ
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            // Lấy customerId từ details
+            Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
+            Integer customerId = (Integer) details.get("customerId");
+
+            List<RegisteredAuctionDTO> auctions = auctionService.getRegisteredAuctionsByCustomerId(customerId);
+            return ResponseEntity.ok(auctions);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @DeleteMapping("/cancel/{auctionId}")
+    public ResponseEntity<?> cancelAuction(@PathVariable Integer auctionId, Authentication authentication) {
+        try {
+            Integer customerId = (Integer) ((Map<?, ?>) authentication.getDetails()).get("customerId");
+            auctionService.cancelAuction(auctionId, customerId);
+            return ResponseEntity.ok(Map.of("message", "Hủy phiên đấu giá thành công"));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Lỗi hệ thống"));
+        }
     }
 }

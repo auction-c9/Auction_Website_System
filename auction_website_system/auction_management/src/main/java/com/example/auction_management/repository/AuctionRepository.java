@@ -37,4 +37,6 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
             "END")
     void updateAuctionStatuses(@Param("now") LocalDateTime now);
 
+    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
+
 }
