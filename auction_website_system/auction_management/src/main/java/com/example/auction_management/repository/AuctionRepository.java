@@ -44,4 +44,5 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     @Query("UPDATE Auction a SET a.winnerNotified = true WHERE a.auctionId = :auctionId")
     void markWinnerNotified(@Param("auctionId") Integer auctionId);
 
+    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
 }

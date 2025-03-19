@@ -23,7 +23,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auctions")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuctionController {
 
