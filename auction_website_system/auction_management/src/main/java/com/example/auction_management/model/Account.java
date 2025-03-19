@@ -16,11 +16,11 @@ public class Account {
     private Integer accountId;
 
     @NotBlank(message = "Username không được để trống")
-    @Column(name = "username", columnDefinition = "VARCHAR(255) NOT NULL UNIQUE")
+    @Column(name = "username", columnDefinition = "VARCHAR(255)", nullable = false, unique = true )
     private String username;
 
     @NotBlank(message = "Password không được để trống")
-    @Column(name = "password", columnDefinition = "VARCHAR(255) NOT NULL")
+    @Column(name = "password", columnDefinition = "VARCHAR(255)", nullable = false)
     private String password;
 
     @NotNull(message = "Trạng thái không được để trống")
