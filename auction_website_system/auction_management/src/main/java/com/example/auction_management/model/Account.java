@@ -35,6 +35,9 @@ public class Account {
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private Customer customer;
 
+    @Column(name = "is_locked", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isLocked;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", columnDefinition = "ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL'")
