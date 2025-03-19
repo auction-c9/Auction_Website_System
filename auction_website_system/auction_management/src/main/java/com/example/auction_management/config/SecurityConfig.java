@@ -95,7 +95,7 @@ public class SecurityConfig {
                                 "/ws-auction/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/auctions", "/api/auctions/{id}", "/api/auctions/status/{status}",
-                                "/api/auctions/ongoing", "/api/auctions/product/{productId}"
+                                "/api/auctions/ongoing", "/api/auctions/product/{productId}", "/api/bids/auction/{id}"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history").authenticated()
