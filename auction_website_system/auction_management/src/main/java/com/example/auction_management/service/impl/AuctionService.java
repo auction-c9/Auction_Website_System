@@ -237,7 +237,7 @@ public class AuctionService implements IAuctionService {
     }
 
     public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
-        List<AuctionRegistration> registrations = auctionRegistrationRepository.findByCustomerId(customerId);
+        List<AuctionRegistration> registrations = auctionRegistrationRepository.findByCustomer_CustomerId(customerId);
         return registrations.stream()
                 .map(registration -> {
                     Auction auction = registration.getAuction();
@@ -256,7 +256,7 @@ public class AuctionService implements IAuctionService {
     @Transactional
     public void unregisterCustomerFromAuction(Integer customerId, Integer auctionId) {
         AuctionRegistration registration = auctionRegistrationRepository
-                .findByCustomerIdAndAuctionId(customerId, auctionId)
+                .findByCustomer_CustomerIdAndAuction_AuctionId(customerId, auctionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa đăng ký phiên đấu giá này"));
 
         if (registration.getAuction().getStatus() != Auction.AuctionStatus.pending) {

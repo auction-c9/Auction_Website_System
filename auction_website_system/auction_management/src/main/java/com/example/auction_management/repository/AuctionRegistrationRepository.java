@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AuctionRegistrationRepository extends JpaRepository<AuctionRegistration,Integer> {
-    List<AuctionRegistration> findByCustomerId(Integer customerId);
-    Optional<AuctionRegistration> findByCustomerIdAndAuctionId(Integer customerId, Integer auctionId);
+    List<AuctionRegistration> findByCustomer_CustomerId(Integer customerId);
+    Optional<AuctionRegistration> findByCustomer_CustomerIdAndAuction_AuctionId(Integer customerId, Integer auctionId);
     boolean existsByAuctionAndCustomer(Auction auction, Customer customer);
 }
