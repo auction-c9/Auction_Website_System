@@ -29,7 +29,7 @@ public class Product {
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL")
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", columnDefinition = "INT")
     private Category category;
 

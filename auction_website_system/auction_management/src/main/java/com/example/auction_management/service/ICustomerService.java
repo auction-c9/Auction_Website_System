@@ -7,6 +7,5 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 
 public interface ICustomerService extends IService<Customer, Integer> {
-    Optional<Customer> findByAccountUsername(String username);
-    Page<Customer> findAll(Pageable pageable);
+    Page<Customer> getCustomers(int page, int size);
 }

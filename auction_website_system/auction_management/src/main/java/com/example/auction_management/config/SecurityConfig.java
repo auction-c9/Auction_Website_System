@@ -102,7 +102,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/auctions/cancel/**" ).authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auth/profile").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
-                        .requestMatchers("/api/bids/**").hasAuthority("ROLE_USER")
+                        .requestMatchers("/api/bids/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )
