@@ -60,7 +60,7 @@ public class Auction {
     private BigDecimal bidStep;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false,length = 10)
     private AuctionStatus status;
 
     @CreationTimestamp
@@ -71,6 +71,9 @@ public class Auction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isDeleted = false;
+
     // Đổi tên trường để khớp với Service (getBids)
     @OneToMany(mappedBy = "auction", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JsonIgnoreProperties("auction")
@@ -79,4 +82,5 @@ public class Auction {
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
+
 }

@@ -58,8 +58,15 @@ public class Customer {
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;
 
+    @NotBlank(message = "Tên ngân hàng không được để trống")
+    @Column(name = "bank_name", columnDefinition = "VARCHAR(255) NOT NULL")
+    private String bankName;
+
+    @NotBlank(message = "Số tài khoản không được để trống")
+    @Column(name = "bank_account", columnDefinition = "VARCHAR(50) NOT NULL")
+    private String bankAccount;
+
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "avatar_id", referencedColumnName = "id")
     private Image avatar;
-
 }

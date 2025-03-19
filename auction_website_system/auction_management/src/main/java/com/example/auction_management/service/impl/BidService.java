@@ -10,7 +10,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.scheduling.annotation.Scheduled;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,64 +55,56 @@ public class BidService implements IBidService {
     @Override
     @Transactional
     public BidResponseDTO placeBid(BidDTO bidDTO) {
-        // Lấy thông tin phiên đấu giá
         Auction auction = auctionRepository.findById(bidDTO.getAuctionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!"));
 
-        // Kiểm tra phiên đấu giá còn hoạt động và chưa kết thúc
         validateAuctionStatus(auction);
 
-        // Lấy thông tin người dùng đang đăng nhập
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         Customer customer = customerRepository.findByAccountUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin khách hàng!"));
 
-        // ✅ Kiểm tra không cho chủ bài đấu giá đặt giá
         if (auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
             throw new InvalidActionException("Bạn không thể đặt giá cho bài đấu giá của chính mình!");
         }
 
-        // ✅ Kiểm tra đã thanh toán đặt cọc chưa
         if (!checkDeposit(customer.getCustomerId(), auction.getAuctionId())) {
             throw new InvalidActionException("Bạn cần hoàn tất đặt cọc để tham gia đấu giá!");
         }
 
-        // Kiểm tra giá đấu
         validateBidAmount(auction, bidDTO.getBidAmount());
 
-        // Cập nhật lại trạng thái winner của các bid cũ
         resetOldBids(auction);
 
-        // Tạo bid mới
         Bid newBid = new Bid();
         newBid.setAuction(auction);
         newBid.setCustomer(customer);
         newBid.setBidAmount(bidDTO.getBidAmount());
         newBid.setBidTime(LocalDateTime.now());
-        newBid.setIsWinner(true); // Tạm thời gán là người thắng cao nhất
+        newBid.setIsWinner(Boolean.TRUE); // ✅ Gán isWinner là Boolean.TRUE thay vì true
 
         Bid savedBid = bidRepository.save(newBid);
 
-        // Tạo DTO trả về
         return mapToBidResponseDTO(savedBid);
     }
+
     // ---------------------- HISTORY & WINNER ----------------------
 
     public List<BidResponseDTO> getBidHistoryByAuctionId(Integer auctionId) {
-        List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId); // Lấy danh sách bid theo auctionId, giảm dần
+        List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId);
         if (bids == null || bids.isEmpty()) {
-            return new ArrayList<>(); // Trả về rỗng nếu chưa có bid
+            return new ArrayList<>();
         }
 
-        // CHANGE: Thêm thông tin user từ bid.getAccount() vào DTO để hiển thị profile
         return bids.stream().map(bid -> BidResponseDTO.builder()
                         .bidId(bid.getBidId())
                         .auctionId(bid.getAuction().getAuctionId())
                         .customerId(bid.getCustomer().getCustomerId())
                         .bidAmount(bid.getBidAmount())
                         .bidTime(bid.getBidTime())
+                        .isWinner(bid.getIsWinner()) // ✅ Trả về Boolean thay vì Integer
                         .message("Lịch sử đấu giá")
-                        .user(bid.getAccount()) // Thông tin tài khoản (Account) chứa accountId và username
+                        .user(bid.getAccount())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -121,11 +113,13 @@ public class BidService implements IBidService {
         return bidRepository.findTopByAuctionOrderByBidAmountDesc(auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!")));
     }
+
     public Integer getCustomerIdFromUsername(String username) {
         Customer customer = customerRepository.findByAccountUsername(username)
                 .orElseThrow(() -> new CustomerNotFoundException("Không tìm thấy tài khoản khách hàng!"));
         return customer.getCustomerId();
     }
+
     // ---------------------- SUPPORT METHODS ----------------------
     private void validateAuctionStatus(Auction auction) {
         if (!auction.getStatus().equals(Auction.AuctionStatus.active)) {
@@ -145,22 +139,27 @@ public class BidService implements IBidService {
 
     private void resetOldBids(Auction auction) {
         List<Bid> oldBids = bidRepository.findByAuction(auction);
-        oldBids.forEach(b -> b.setIsWinner(false));
+        oldBids.forEach(b -> {
+            b.setIsWinner(Boolean.FALSE); // ✅ Sử dụng Boolean.FALSE thay vì false
+            System.out.println("Reset isWinner: " + b.getBidId() + " -> false");
+        });
         bidRepository.saveAll(oldBids);
     }
 
     private BidResponseDTO mapToBidResponseDTO(Bid bid) {
+        System.out.println("Bid ID: " + bid.getBidId() + " | isWinner: " + bid.getIsWinner());
         return new BidResponseDTO(
                 bid.getBidId(),
                 bid.getAuction().getAuctionId(),
                 bid.getCustomer().getCustomerId(),
                 bid.getBidAmount(),
                 bid.getBidTime(),
-                bid.getIsWinner(),
+                bid.getIsWinner(), // ✅ Trả về Boolean thay vì Integer
                 "Đặt giá thành công!",
                 bid.getAccount()
         );
     }
+
     /**
      * Kiểm tra xem người dùng đã thanh toán đặt cọc hay chưa
      */
@@ -179,8 +178,8 @@ public class BidService implements IBidService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá!"));
 
         Transaction transaction = new Transaction();
-        transaction.setCustomer(customer); // Truyền đối tượng Customer thay vì Integer
-        transaction.setAuction(auction);   // Truyền đối tượng Auction thay vì Integer
+        transaction.setCustomer(customer);
+        transaction.setAuction(auction);
         transaction.setAmount(amount);
         transaction.setPaymentMethod(method);
         transaction.setTransactionType("DEPOSIT");
@@ -188,5 +187,10 @@ public class BidService implements IBidService {
         transaction.setCreatedAt(LocalDateTime.now());
 
         transactionRepository.save(transaction);
+    }
+
+    @Scheduled(fixedRate = 60000) // Mỗi 60 giây
+    public void updateAuctionStatuses() {
+        auctionRepository.updateAuctionStatuses(LocalDateTime.now());
     }
 }

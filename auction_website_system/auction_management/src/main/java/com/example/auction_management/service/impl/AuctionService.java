@@ -1,5 +1,6 @@
 package com.example.auction_management.service.impl;
 
+import com.example.auction_management.dto.RegisteredAuctionDTO;
 import com.example.auction_management.exception.AuctionNotFoundException;
 import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.exception.UnauthorizedActionException;
@@ -8,12 +9,14 @@ import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IAuctionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class AuctionService implements IAuctionService {
     private final ProductRepository productRepository;
     private final AccountRepository accountRepository;
     private final BidRepository bidRepository;
+    private final CustomerRepository customerRepository;
 
     // ------------------ CORE SERVICES ----------------------
 
@@ -32,8 +36,8 @@ public class AuctionService implements IAuctionService {
     }
 
     @Override
-    public Optional<Auction> findById(Integer id) {
-        return auctionRepository.findAuctionWithProductAndAccount(id);
+    public Optional<Auction> findById(Integer integer) {
+        return auctionRepository.findById(integer);
     }
 
     @Override
@@ -140,9 +144,66 @@ public class AuctionService implements IAuctionService {
         return auction;
 
     }
-    public Auction getAuctionById(Integer id) {
-        return auctionRepository.findAuctionWithProductAndAccount(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+    @Transactional
+    public void updateAuctionStatuses() {
+        auctionRepository.updateAuctionStatuses(LocalDateTime.now());
+    }
+    public List<Auction> findAllWithUpdatedStatus() {
+        List<Auction> auctions = auctionRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Auction auction : auctions) {
+            if (auction.getAuctionStartTime() == null || auction.getAuctionEndTime() == null) {
+                System.out.println("Lỗi: Phiên đấu giá ID " + auction.getAuctionId() + " có thời gian null.");
+                continue; // Bỏ qua nếu dữ liệu không hợp lệ
+            }
+
+            if (now.isBefore(auction.getAuctionStartTime())) {
+                auction.setStatus(Auction.AuctionStatus.pending);
+            } else if (now.isAfter(auction.getAuctionStartTime()) && now.isBefore(auction.getAuctionEndTime())) {
+                auction.setStatus(Auction.AuctionStatus.active);
+            } else {
+                auction.setStatus(Auction.AuctionStatus.ended);
+            }
+        }
+
+        return auctionRepository.saveAll(auctions);
     }
 
+    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+        Account account = customer.getAccount();
+
+        List<Product> products = productRepository.findByAccountAndIsDeletedFalse(account);
+        List<Auction> auctions = auctionRepository.findByProductInAndIsDeletedFalse(products);
+
+        return auctions.stream().map(auction -> {
+            RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
+            dto.setAuctionId(auction.getAuctionId());
+            dto.setProductName(auction.getProduct().getName());
+            dto.setProductDescription(auction.getProduct().getDescription());
+            dto.setBasePrice(auction.getProduct().getBasePrice());
+            dto.setAuctionStartTime(auction.getAuctionStartTime());
+            dto.setAuctionEndTime(auction.getAuctionEndTime());
+            dto.setStatus(auction.getStatus());
+            dto.setCreatedAt(auction.getCreatedAt());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void cancelAuction(Integer auctionId, Integer customerId) {
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+
+        if (!auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
+            throw new AccessDeniedException("You do not have permission to cancel this auction");
+        }
+
+        auction.setIsDeleted(true);
+        auctionRepository.save(auction);
+    }
 }

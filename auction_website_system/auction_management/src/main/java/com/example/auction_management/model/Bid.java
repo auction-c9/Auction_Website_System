@@ -5,6 +5,8 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import jakarta.persistence.Convert;
+import org.hibernate.type.NumericBooleanConverter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,8 +42,11 @@ public class Bid {
     @Column(name = "bid_time", updatable = false)
     private LocalDateTime bidTime;
 
+
+
     @Column(name = "is_winner", nullable = false)
-    private Boolean isWinner = false;
+    @Convert(converter = NumericBooleanConverter.class)
+    private Boolean isWinner;
 
     // Thêm getter để hỗ trợ ProductService khi gọi bid.getAccount()
     public Account getAccount() {
