@@ -1,32 +1,40 @@
 package com.example.auction_management.controller;
 
-import com.example.auction_management.dto.ChatMessageDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.auction_management.model.ChatMessage;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.security.Principal;
+import java.time.LocalDateTime;
+
 @Controller
 public class ChatController {
+    private final SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    // User gửi tin nhắn đến Admin
-    @MessageMapping("/private-message")
-    public void sendToAdmin(@Payload ChatMessageDTO message) {
-        System.out.println("📩 Tin nhắn từ user ID: " + message.getSenderId() + " gửi đến admin: " + message.getContent());
-        messagingTemplate.convertAndSend("/topic/admin/messages", message);
+    public ChatController(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
     }
 
-    // Admin gửi tin nhắn đến User
-    @MessageMapping("/admin-reply")
-    public void sendToUser(@Payload ChatMessageDTO message) {
-        System.out.println("📩 Admin ID: " + message.getSenderId() + " gửi tin nhắn đến user ID: " + message.getReceiverId());
-        messagingTemplate.convertAndSendToUser(
-                message.getReceiverId().toString(), "/queue/private-messages", message
-        );
+    // 1️⃣ User gửi tin cho Admin
+    @MessageMapping("/sendToAdmin")
+    public void sendToAdmin(ChatMessage message, Principal principal) {
+        String username = principal.getName();
+        message.setSender(username);
+        message.setReceiver("admin");
+        message.setTimestamp(LocalDateTime.now());
+
+        messagingTemplate.convertAndSendToUser("admin", "/queue/messages", message);
+        messagingTemplate.convertAndSendToUser(username, "/queue/messages", message);
+    }
+
+    // 2️⃣ Admin gửi tin nhắn riêng tư cho User cụ thể
+    @MessageMapping("/sendToUser")
+    public void sendToUser(ChatMessage message) {
+        message.setTimestamp(LocalDateTime.now());
+
+        messagingTemplate.convertAndSendToUser(message.getReceiver(), "/queue/messages", message);
+        messagingTemplate.convertAndSendToUser("admin", "/queue/messages", message);
     }
 }
-

@@ -7,6 +7,8 @@ import com.example.auction_management.repository.CustomerRepository;
 import com.example.auction_management.repository.ImageRepository;
 import com.example.auction_management.service.ICustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,8 +28,13 @@ public class CustomerService implements ICustomerService {
     }
 
     @Override
+    public Page<Customer> findAll(Pageable pageable) {
+        return customerRepository.findAll(pageable);
+    }
+
+    @Override
     public List<Customer> findAll() {
-        return List.of();
+        return customerRepository.findAll();
     }
 
     @Override
