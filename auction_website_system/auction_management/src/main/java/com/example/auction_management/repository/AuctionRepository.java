@@ -37,6 +37,11 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
             "END")
     void updateAuctionStatuses(@Param("now") LocalDateTime now);
 
-    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
+
+    List<Auction> findByAuctionEndTimeBeforeAndWinnerNotifiedFalse(LocalDateTime endTime);
+    ;
+    @Modifying
+    @Query("UPDATE Auction a SET a.winnerNotified = true WHERE a.auctionId = :auctionId")
+    void markWinnerNotified(@Param("auctionId") Integer auctionId);
 
 }

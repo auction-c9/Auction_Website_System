@@ -184,6 +184,7 @@ public class ProductService implements IProductService {
                 .bidStep(dto.getBidStep())
                 .currentPrice(dto.getBasePrice())
                 .status(Auction.AuctionStatus.valueOf(dto.getStatus()))
+                .winnerNotified(false) // Thêm dòng này để đảm bảo trường không null
                 .build();
         auctionRepository.save(auction);
     }

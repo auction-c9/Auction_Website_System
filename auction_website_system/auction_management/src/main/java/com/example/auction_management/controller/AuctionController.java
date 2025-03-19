@@ -1,5 +1,7 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.dto.AuctionDTO;
+import com.example.auction_management.mapper.AuctionMapper;
 import com.example.auction_management.dto.RegisteredAuctionDTO;
 import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.model.Auction;
@@ -12,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.stream.Collectors;
+
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +28,13 @@ import java.util.Optional;
 public class AuctionController {
 
     private final AuctionService auctionService;
+    private final AuctionMapper auctionMapper;
+
+    public AuctionController(AuctionService auctionService, AuctionMapper auctionMapper) {
+        this.auctionService = auctionService;
+        this.auctionMapper = auctionMapper;
+    }
+
 
     @GetMapping
     public ResponseEntity<List<Auction>> getAllAuctions() {
