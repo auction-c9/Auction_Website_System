@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -35,6 +36,7 @@ public class Product {
 
     @Lob
     @Column(name = "description", columnDefinition = "TEXT")
+    @Size(max = 300, message = "Mô tả không được vượt quá 300 ký tự")
     private String description;
 
     @DecimalMin(value = "0.00", inclusive = false, message = "Giá khởi điểm phải lớn hơn 0")
