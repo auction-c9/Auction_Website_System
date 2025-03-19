@@ -27,6 +27,7 @@ public class AuctionService implements IAuctionService {
     private final AccountRepository accountRepository;
     private final BidRepository bidRepository;
     private final CustomerRepository customerRepository;
+    private final AuctionRegistrationRepository auctionRegistrationRepository;
 
     // ------------------ CORE SERVICES ----------------------
 
@@ -170,37 +171,110 @@ public class AuctionService implements IAuctionService {
         return auctionRepository.saveAll(auctions);
     }
 
-    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
+//    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
+//        Customer customer = customerRepository.findById(customerId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+//        Account account = customer.getAccount();
+//
+//        List<Product> products = productRepository.findByAccountAndIsDeletedFalse(account);
+//        List<Auction> auctions = auctionRepository.findByProductInAndIsDeletedFalse(products);
+//
+//        return auctions.stream().map(auction -> {
+//            RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
+//            dto.setAuctionId(auction.getAuctionId());
+//            dto.setProductName(auction.getProduct().getName());
+//            dto.setProductDescription(auction.getProduct().getDescription());
+//            dto.setBasePrice(auction.getProduct().getBasePrice());
+//            dto.setAuctionStartTime(auction.getAuctionStartTime());
+//            dto.setAuctionEndTime(auction.getAuctionEndTime());
+//            dto.setStatus(auction.getStatus());
+//            dto.setCreatedAt(auction.getCreatedAt());
+//            return dto;
+//        }).collect(Collectors.toList());
+//    }
+//
+//    @Transactional
+//    public void cancelAuction(Integer auctionId, Integer customerId) {
+//        Auction auction = auctionRepository.findById(auctionId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+//        Customer customer = customerRepository.findById(customerId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+//
+//        if (!auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
+//            throw new AccessDeniedException("You do not have permission to cancel this auction");
+//        }
+//
+
+
+
+//        auction.setIsDeleted(true);
+//        auctionRepository.save(auction);
+//    }
+
+    @Transactional
+    public void registerCustomerForAuction(Integer customerId, Integer auctionId) {
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-        Account account = customer.getAccount();
+                .orElseThrow(() -> new ResourceNotFoundException("Khách hàng không tồn tại"));
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Phiên đấu giá không tồn tại"));
 
-        List<Product> products = productRepository.findByAccountAndIsDeletedFalse(account);
-        List<Auction> auctions = auctionRepository.findByProductInAndIsDeletedFalse(products);
+        // Kiểm tra trạng thái phiên đấu giá
+        if (auction.getStatus() != Auction.AuctionStatus.pending) {
+            throw new IllegalStateException("Chỉ có thể đăng ký khi phiên ở trạng thái pending");
+        }
 
-        return auctions.stream().map(auction -> {
-            RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
-            dto.setAuctionId(auction.getAuctionId());
-            dto.setProductName(auction.getProduct().getName());
-            dto.setProductDescription(auction.getProduct().getDescription());
-            dto.setBasePrice(auction.getProduct().getBasePrice());
-            dto.setAuctionStartTime(auction.getAuctionStartTime());
-            dto.setAuctionEndTime(auction.getAuctionEndTime());
-            dto.setStatus(auction.getStatus());
-            dto.setCreatedAt(auction.getCreatedAt());
-            return dto;
-        }).collect(Collectors.toList());
+        // Kiểm tra đã đăng ký chưa
+        boolean isRegistered = auctionRegistrationRepository.existsByAuctionAndCustomer(auction, customer);
+        if (isRegistered) {
+            throw new IllegalStateException("Bạn đã đăng ký phiên đấu giá này");
+        }
+
+        // Lưu đăng ký
+        AuctionRegistration registration = new AuctionRegistration();
+        registration.setAuction(auction);
+        registration.setCustomer(customer);
+        auctionRegistrationRepository.save(registration);
+    }
+
+    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
+        List<AuctionRegistration> registrations = auctionRegistrationRepository.findByCustomerId(customerId);
+        return registrations.stream()
+                .map(registration -> {
+                    Auction auction = registration.getAuction();
+                    RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
+                    dto.setAuctionId(auction.getAuctionId());
+                    dto.setProductName(auction.getProduct().getName());
+                    dto.setAuctionStartTime(auction.getAuctionStartTime());
+                    dto.setAuctionEndTime(auction.getAuctionEndTime());
+                    dto.setStatus(auction.getStatus());
+                    dto.setCreatedAt(auction.getCreatedAt());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void unregisterCustomerFromAuction(Integer customerId, Integer auctionId) {
+        AuctionRegistration registration = auctionRegistrationRepository
+                .findByCustomerIdAndAuctionId(customerId, auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa đăng ký phiên đấu giá này"));
+
+        if (registration.getAuction().getStatus() != Auction.AuctionStatus.pending) {
+            throw new IllegalStateException("Chỉ có thể hủy đăng ký khi phiên ở trạng thái pending");
+        }
+
+        auctionRegistrationRepository.delete(registration);
     }
 
     @Transactional
     public void cancelAuction(Integer auctionId, Integer customerId) {
         Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá"));
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng"));
 
-        if (!auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
-            throw new AccessDeniedException("You do not have permission to cancel this auction");
+        if (auction.getStatus() != Auction.AuctionStatus.pending) {
+            throw new IllegalStateException("Chỉ có thể hủy phiên đấu giá ở trạng thái pending");
         }
 
         auction.setIsDeleted(true);
