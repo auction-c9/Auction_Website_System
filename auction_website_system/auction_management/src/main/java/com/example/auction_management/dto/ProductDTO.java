@@ -47,4 +47,6 @@ public class ProductDTO {
 
     @Pattern(regexp = "pending|active|ended", message = "Trạng thái không hợp lệ (pending, active, ended)")
     private String status = "pending";
+
+    private List<Integer> customerIds;
 }

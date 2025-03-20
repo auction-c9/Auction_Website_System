@@ -35,6 +35,8 @@ public class ProductService implements IProductService {
     private final ImageRepository imageRepository;
     private final AuctionRepository auctionRepository;
     private final AccountRepository accountRepository;
+    private final AuctionRegistrationRepository auctionRegistrationRepository;
+    private final CustomerRepository customerRepository;
 
     private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
@@ -42,14 +44,12 @@ public class ProductService implements IProductService {
 
     @Override
     public List<Product> findAll() {
-        return productRepository.findAll().stream()
-                .filter(product -> !Boolean.TRUE.equals(product.getIsDeleted()))
-                .collect(Collectors.toList());
+        return productRepository.findAllByIsDeletedFalse(); //
     }
 
     @Override
     public Optional<Product> findById(Integer id) {
-        return productRepository.findById(id);
+        return productRepository.findByProductIdAndIsDeletedFalse(id);
     }
 
     @Override
@@ -62,6 +62,11 @@ public class ProductService implements IProductService {
         Product product = getProductByIdAndCheckOwner(id);
         product.setIsDeleted(true);
         productRepository.save(product);
+        List<Auction> auctions = auctionRepository.findAllByProduct(product);
+        auctions.forEach(auction -> {
+            auction.setIsDeleted(true);
+            auctionRepository.save(auction);
+        });
     }
 
     // ------------------------- PRODUCT MANAGEMENT ----------------------------
@@ -72,11 +77,25 @@ public class ProductService implements IProductService {
         Account account = getAuthenticatedAccount();
         Category category = getCategory(dto.getCategoryId());
 
+        Customer customer = customerRepository.findByAccount_AccountId(account.getAccountId())
+                .orElseThrow(() -> new ProductCreationException("Tài khoản không liên kết với Customer"));
+
         try {
             Product product = buildProduct(dto, account, category);
             product = productRepository.save(product);
             uploadDetailImages(dto.getImageFiles(), product);
-            createAuction(dto, product);
+
+            // Tạo auction và lưu vào database
+            Auction auction = createAuction(dto, product);
+
+            if (auctionRegistrationRepository.existsByAuctionAndCustomer(auction, customer)) {
+                throw new ProductCreationException("Customer đã đăng ký auction này");
+            }
+
+            AuctionRegistration registration = new AuctionRegistration();
+            registration.setAuction(auction);
+            registration.setCustomer(customer);
+            auctionRegistrationRepository.save(registration);
             return product;
         } catch (IOException e) {
             logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);
@@ -183,7 +202,7 @@ public class ProductService implements IProductService {
         }
     }
 
-    private void createAuction(ProductDTO dto, Product product) {
+    private Auction createAuction(ProductDTO dto, Product product) {
         Auction auction = Auction.builder()
                 .product(product)
                 .auctionStartTime(dto.getAuctionStartTime())
@@ -191,9 +210,10 @@ public class ProductService implements IProductService {
                 .bidStep(dto.getBidStep())
                 .currentPrice(dto.getBasePrice())
                 .status(Auction.AuctionStatus.valueOf(dto.getStatus()))
+                .isDeleted(false)
                 .winnerNotified(false) // Thêm dòng này để đảm bảo trường không null
                 .build();
-        auctionRepository.save(auction);
+        return auctionRepository.save(auction);
     }
 
     private String uploadFile(MultipartFile file) throws IOException {

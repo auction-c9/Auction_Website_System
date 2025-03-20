@@ -126,23 +126,25 @@ public class AuthService {
                     throw new RuntimeException("Lỗi khi upload ảnh đại diện");
                 }
             }
-            // Tạo Account
+
             Account account = new Account();
             account.setUsername(accountDto.getUsername());
             account.setPassword(passwordEncoder.encode(accountDto.getPassword()));
             account.setStatus(Account.AccountStatus.active);
-            // Lấy Role từ database (sửa thành "ROLE_USER")
-            Role defaultRole = roleRepository.findByName("ROLE_USER") // Sửa ở đây
+
+            Role defaultRole = roleRepository.findByName("ROLE_USER")
                     .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
             account.setRole(defaultRole);
 
-            // Tạo Customer
             Customer customer = new Customer();
             customer.setName(accountDto.getName());
             customer.setEmail(accountDto.getEmail());
             customer.setPhone(accountDto.getPhone());
             customer.setIdentityCard(accountDto.getIdentityCard());
             customer.setAddress(accountDto.getAddress());
+            customer.setDob(accountDto.getDob());
+            customer.setBankAccount(accountDto.getBankAccount());
+            customer.setBankName(accountDto.getBankName());
             customer.setAvatar(avatar);
             customer.setAccount(account);
             account.setAuthProvider(Account.AuthProvider.LOCAL);
@@ -155,6 +157,21 @@ public class AuthService {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    private CustomerDTO mapToDTO(Customer customer) {
+        CustomerDTO dto = new CustomerDTO();
+        dto.setUsername(customer.getAccount().getUsername());
+        dto.setName(customer.getName());
+        dto.setEmail(customer.getEmail());
+        dto.setDob(customer.getDob());
+        dto.setPhone(customer.getPhone());
+        dto.setIdentityCard(customer.getIdentityCard());
+        dto.setAddress(customer.getAddress());
+        dto.setBankAccount(customer.getBankAccount());
+        dto.setBankName(customer.getBankName());
+        dto.setAvatarUrl(customer.getAvatar() != null ? customer.getAvatar().getImageUrl() : null);
+        return dto;
     }
 
     public void verifyLinkAccount(String token) {
@@ -368,18 +385,13 @@ public class AuthService {
         Customer customer = customerRepository.findByAccount(account)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy thông tin cá nhân"));
 
-        // Kiểm tra mật khẩu nếu có thay đổi
-        if (StringUtils.hasText(customerDTO.getNewPassword())) {
-            validatePasswordChange(account, customerDTO);
-            account.setPassword(passwordEncoder.encode(customerDTO.getNewPassword()));
-        }
-
         // Cập nhật thông tin cơ bản
         customer.setName(customerDTO.getName());
         customer.setDob(customerDTO.getDob());
         customer.setPhone(customerDTO.getPhone());
         customer.setIdentityCard(customerDTO.getIdentityCard());
         customer.setAddress(customerDTO.getAddress());
+        customer.setBankAccount(customerDTO.getBankAccount());
 
         // Xử lý upload ảnh
         if (customerDTO.getAvatarFile() != null && !customerDTO.getAvatarFile().isEmpty()) {
@@ -423,16 +435,22 @@ public class AuthService {
         }
     }
 
-    private CustomerDTO mapToDTO(Customer customer) {
-        CustomerDTO dto = new CustomerDTO();
-        dto.setUsername(customer.getAccount().getUsername());
-        dto.setName(customer.getName());
-        dto.setEmail(customer.getEmail());
-        dto.setDob(customer.getDob());
-        dto.setPhone(customer.getPhone());
-        dto.setIdentityCard(customer.getIdentityCard());
-        dto.setAddress(customer.getAddress());
-        dto.setAvatarUrl(customer.getAvatar() != null ? customer.getAvatar().getImageUrl() : null);
-        return dto;
+    public void changePassword(String username, String currentPassword,
+                               String newPassword, String confirmPassword) {
+
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Tài khoản không tồn tại"));
+
+        // Validate password
+        if (!passwordEncoder.matches(currentPassword, account.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu hiện tại không đúng");
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new PasswordMismatchException("Mật khẩu mới không khớp");
+        }
+
+        account.setPassword(passwordEncoder.encode(newPassword));
+        accountRepository.save(account);
     }
 }
