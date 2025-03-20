@@ -98,6 +98,7 @@ public class SecurityConfig {
                                 "/api/auctions/ongoing", "/api/auctions/product/{productId}", "/api/bids/auction/{id}"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auctions/cancel/**" ).authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()

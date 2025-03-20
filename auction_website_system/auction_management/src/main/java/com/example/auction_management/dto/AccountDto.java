@@ -64,5 +64,4 @@ public class AccountDto {
         if (dob == null) return false;
         return Period.between(dob, LocalDate.now()).getYears() >= 18;
     }
-
 }

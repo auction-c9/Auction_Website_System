@@ -57,6 +57,33 @@ public class AuthController {
         return ResponseEntity.ok(authService.updateCustomerProfile(username, customerDTO));
     }
 
+    @PostMapping("/change-password")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<?> changePassword(
+            @Validated @RequestBody ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+        authService.changePassword(
+                authentication.getName(),
+                request.getCurrentPassword(),
+                request.getNewPassword(),
+                request.getConfirmPassword()
+        );
+        return ResponseEntity.ok("Đổi mật khẩu thành công");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @Validated(ForgotPasswordDTO.Step3.class) @RequestBody ForgotPasswordDTO dto
+    ) {
+        authService.resetPassword(
+                dto.getUsername(),
+                dto.getNewPassword(),
+                dto.getConfirmPassword()
+        );
+        return ResponseEntity.ok("Đặt lại mật khẩu thành công");
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         System.out.println("Received login request for username: " + loginRequest.getUsername());
@@ -163,17 +190,5 @@ public class AuthController {
     ) {
         authService.validateResetCode(dto.getUsername(), dto.getCode());
         return ResponseEntity.ok("Mã xác nhận hợp lệ");
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(
-            @Validated(ForgotPasswordDTO.Step3.class) @RequestBody ForgotPasswordDTO dto
-    ) {
-        authService.resetPassword(
-                dto.getUsername(),
-                dto.getNewPassword(),
-                dto.getConfirmPassword()
-        );
-        return ResponseEntity.ok("Đặt lại mật khẩu thành công");
     }
 }
