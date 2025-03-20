@@ -29,8 +29,4 @@ public class AuctionRegistration {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
-
-    @CreationTimestamp
-    @Column(name = "registration_date", updatable = false)
-    private LocalDateTime registrationDate;
 }

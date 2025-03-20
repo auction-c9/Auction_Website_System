@@ -33,12 +33,12 @@ public class AuctionService implements IAuctionService {
 
     @Override
     public List<Auction> findAll() {
-        return auctionRepository.findAll();
+        return auctionRepository.findAllByIsDeletedFalse();
     }
 
     @Override
     public Optional<Auction> findById(Integer integer) {
-        return auctionRepository.findById(integer);
+        return auctionRepository.findByAuctionIdAndIsDeletedFalse(integer);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class AuctionService implements IAuctionService {
     @Override
     public void deleteById(Integer id) {
         Auction auction = getAuctionByIdAndCheckOwner(id);
-        auctionRepository.deleteById(auction.getAuctionId());
+        softDeleteAuctionAndProduct(auction);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class AuctionService implements IAuctionService {
     // Sửa kiểu trả về thành Optional nếu mỗi sản phẩm chỉ có 1 phiên đấu giá
     @Override
     public Optional<Auction> findByProduct(Product product) {
-        return auctionRepository.findByProduct(product);
+        return auctionRepository.findByProductAndIsDeletedFalse(product);
     }
 
     @Override
@@ -139,8 +139,11 @@ public class AuctionService implements IAuctionService {
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        if (!auction.getProduct().getAccount().getUsername().equals(username)) {
-            throw new UnauthorizedActionException("Bạn không có quyền trên phiên đấu giá này.");
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+
+        if (!auction.getProduct().getAccount().getAccountId().equals(account.getAccountId())) {
+            throw new UnauthorizedActionException("Bạn không có quyền xóa auction này");
         }
         return auction;
 
@@ -170,46 +173,6 @@ public class AuctionService implements IAuctionService {
 
         return auctionRepository.saveAll(auctions);
     }
-
-//    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
-//        Customer customer = customerRepository.findById(customerId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-//        Account account = customer.getAccount();
-//
-//        List<Product> products = productRepository.findByAccountAndIsDeletedFalse(account);
-//        List<Auction> auctions = auctionRepository.findByProductInAndIsDeletedFalse(products);
-//
-//        return auctions.stream().map(auction -> {
-//            RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
-//            dto.setAuctionId(auction.getAuctionId());
-//            dto.setProductName(auction.getProduct().getName());
-//            dto.setProductDescription(auction.getProduct().getDescription());
-//            dto.setBasePrice(auction.getProduct().getBasePrice());
-//            dto.setAuctionStartTime(auction.getAuctionStartTime());
-//            dto.setAuctionEndTime(auction.getAuctionEndTime());
-//            dto.setStatus(auction.getStatus());
-//            dto.setCreatedAt(auction.getCreatedAt());
-//            return dto;
-//        }).collect(Collectors.toList());
-//    }
-//
-//    @Transactional
-//    public void cancelAuction(Integer auctionId, Integer customerId) {
-//        Auction auction = auctionRepository.findById(auctionId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
-//        Customer customer = customerRepository.findById(customerId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-//
-//        if (!auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
-//            throw new AccessDeniedException("You do not have permission to cancel this auction");
-//        }
-//
-
-
-
-//        auction.setIsDeleted(true);
-//        auctionRepository.save(auction);
-//    }
 
     @Transactional
     public void registerCustomerForAuction(Integer customerId, Integer auctionId) {
@@ -244,6 +207,8 @@ public class AuctionService implements IAuctionService {
                     RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
                     dto.setAuctionId(auction.getAuctionId());
                     dto.setProductName(auction.getProduct().getName());
+                    dto.setProductDescription(auction.getProduct().getDescription());
+                    dto.setBasePrice(auction.getProduct().getBasePrice());
                     dto.setAuctionStartTime(auction.getAuctionStartTime());
                     dto.setAuctionEndTime(auction.getAuctionEndTime());
                     dto.setStatus(auction.getStatus());
@@ -259,25 +224,31 @@ public class AuctionService implements IAuctionService {
                 .findByCustomer_CustomerIdAndAuction_AuctionId(customerId, auctionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bạn chưa đăng ký phiên đấu giá này"));
 
-        if (registration.getAuction().getStatus() != Auction.AuctionStatus.pending) {
+        Auction auction = registration.getAuction();
+
+        if (auction.getStatus() != Auction.AuctionStatus.pending) {
             throw new IllegalStateException("Chỉ có thể hủy đăng ký khi phiên ở trạng thái pending");
         }
 
         auctionRegistrationRepository.delete(registration);
+        // Kiểm tra xem auction còn đăng ký nào không
+        List<AuctionRegistration> remainingRegistrations =
+                auctionRegistrationRepository.findByAuction_AuctionId(auctionId);
+
+        // Nếu không còn đăng ký nào, xóa mềm auction và product
+        if (remainingRegistrations.isEmpty()) {
+            softDeleteAuctionAndProduct(auction);
+        }
     }
 
-    @Transactional
-    public void cancelAuction(Integer auctionId, Integer customerId) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên đấu giá"));
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng"));
-
-        if (auction.getStatus() != Auction.AuctionStatus.pending) {
-            throw new IllegalStateException("Chỉ có thể hủy phiên đấu giá ở trạng thái pending");
-        }
-
+    private void softDeleteAuctionAndProduct(Auction auction) {
+        // Xóa mềm auction
         auction.setIsDeleted(true);
         auctionRepository.save(auction);
+
+        // Xóa mềm product liên quan
+        Product product = auction.getProduct();
+        product.setIsDeleted(true);
+        productRepository.save(product);
     }
 }

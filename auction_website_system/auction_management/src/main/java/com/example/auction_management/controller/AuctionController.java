@@ -83,56 +83,21 @@ public class AuctionController {
         return ResponseEntity.ok(auctionService.findOngoingAuctions());
     }
 
-//    @GetMapping("/registered-history")
-//    public ResponseEntity<List<RegisteredAuctionDTO>> getRegisteredAuctions(Authentication authentication) {
-//        try {
-//            // Kiểm tra authentication hợp lệ
-//            if (authentication == null || !authentication.isAuthenticated()) {
-//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//            }
-//
-//            // Lấy customerId từ details
-//            Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
-//            Integer customerId = (Integer) details.get("customerId");
-//
-//            List<RegisteredAuctionDTO> auctions = auctionService.getRegisteredAuctionsByCustomerId(customerId);
-//            return ResponseEntity.ok(auctions);
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-//        }
-//    }
-//
-//    @DeleteMapping("/cancel/{auctionId}")
-//    public ResponseEntity<?> cancelAuction(@PathVariable Integer auctionId, Authentication authentication) {
-//        try {
-//            Integer customerId = (Integer) ((Map<?, ?>) authentication.getDetails()).get("customerId");
-//            auctionService.cancelAuction(auctionId, customerId);
-//            return ResponseEntity.ok(Map.of("message", "Hủy phiên đấu giá thành công"));
-//        } catch (ResourceNotFoundException e) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
-//        } catch (AccessDeniedException e) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Lỗi hệ thống"));
-//        }
-//    }
-
-    @PostMapping("/register/{auctionId}")
+    @GetMapping("/registered-history")
     public ResponseEntity<?> registerForAuction(
-            @PathVariable Integer auctionId,
             Authentication authentication
     ) {
         try {
             Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
             Integer customerId = (Integer) details.get("customerId");
-            auctionService.registerCustomerForAuction(customerId, auctionId);
-            return ResponseEntity.ok(Map.of("message", "Đăng ký đấu giá thành công"));
+            List<RegisteredAuctionDTO> auctions = auctionService.getRegisteredAuctionsByCustomerId(customerId);
+            return ResponseEntity.ok(auctions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    @DeleteMapping("/unregister/{auctionId}")
+    @DeleteMapping("/cancel/{auctionId}")
     public ResponseEntity<?> unregisterFromAuction(
             @PathVariable Integer auctionId,
             Authentication authentication

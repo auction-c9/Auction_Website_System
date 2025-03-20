@@ -143,6 +143,9 @@ public class AuthService {
             customer.setPhone(accountDto.getPhone());
             customer.setIdentityCard(accountDto.getIdentityCard());
             customer.setAddress(accountDto.getAddress());
+            customer.setDob(accountDto.getDob());
+            customer.setBankAccount(accountDto.getBankAccount());
+            customer.setBankName(accountDto.getBankName());
             customer.setAvatar(avatar);
             customer.setAccount(account);
             account.setAuthProvider(Account.AuthProvider.LOCAL);
