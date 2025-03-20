@@ -14,6 +14,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -99,6 +101,11 @@ public class ProductService implements IProductService {
             logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);
             throw new ProductCreationException("Lỗi khi tạo sản phẩm: " + e.getMessage());
         }
+    }
+
+    @Override
+    public Page<Product> getProducts(Pageable pageable) {
+        return productRepository.findAll(pageable);
     }
 
     @Transactional
@@ -204,7 +211,7 @@ public class ProductService implements IProductService {
                 .currentPrice(dto.getBasePrice())
                 .status(Auction.AuctionStatus.valueOf(dto.getStatus()))
                 .isDeleted(false)
-
+                .winnerNotified(false) // Thêm dòng này để đảm bảo trường không null
                 .build();
         return auctionRepository.save(auction);
     }

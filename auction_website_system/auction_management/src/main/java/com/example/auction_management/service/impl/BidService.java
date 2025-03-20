@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,8 @@ public class BidService implements IBidService {
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
+    @Autowired
+    private JavaMailSender mailSender;
 
     // ---------------------- CRUD BASIC ----------------------
 
@@ -68,7 +73,9 @@ public class BidService implements IBidService {
             throw new InvalidActionException("Bạn không thể đặt giá cho bài đấu giá của chính mình!");
         }
 
-        if (!checkDeposit(customer.getCustomerId(), auction.getAuctionId())) {
+        // ✅ Kiểm tra giao dịch đặt cọc trước khi đặt giá
+        boolean hasDeposit = checkDeposit(customer.getCustomerId(), auction.getAuctionId());
+        if (!hasDeposit) {
             throw new InvalidActionException("Bạn cần hoàn tất đặt cọc để tham gia đấu giá!");
         }
 
@@ -81,8 +88,7 @@ public class BidService implements IBidService {
         newBid.setCustomer(customer);
         newBid.setBidAmount(bidDTO.getBidAmount());
         newBid.setBidTime(LocalDateTime.now());
-        newBid.setIsWinner(Boolean.TRUE); // ✅ Gán isWinner là Boolean.TRUE thay vì true
-
+        newBid.setIsWinner(Boolean.TRUE);
         Bid savedBid = bidRepository.save(newBid);
 
         return mapToBidResponseDTO(savedBid);
@@ -164,8 +170,9 @@ public class BidService implements IBidService {
      * Kiểm tra xem người dùng đã thanh toán đặt cọc hay chưa
      */
     public boolean checkDeposit(Integer customerId, Integer auctionId) {
-        return transactionRepository.existsByCustomer_CustomerIdAndAuction_AuctionIdAndTransactionType(customerId, auctionId, "DEPOSIT");
+        return transactionRepository.existsByCustomer_CustomerIdAndAuction_AuctionIdAndStatus(customerId, auctionId, "SUCCESS");
     }
+
 
     /**
      * Lưu thông tin giao dịch đặt cọc
@@ -183,14 +190,60 @@ public class BidService implements IBidService {
         transaction.setAmount(amount);
         transaction.setPaymentMethod(method);
         transaction.setTransactionType("DEPOSIT");
-        transaction.setStatus("COMPLETED");
+        transaction.setStatus("SUCCESS");
         transaction.setCreatedAt(LocalDateTime.now());
 
         transactionRepository.save(transaction);
     }
 
     @Scheduled(fixedRate = 60000) // Mỗi 60 giây
+    @Transactional
     public void updateAuctionStatuses() {
+        // Cập nhật trạng thái của các phiên đấu giá dựa trên thời gian hiện tại
         auctionRepository.updateAuctionStatuses(LocalDateTime.now());
+
+        // Lấy danh sách các phiên đấu giá đã kết thúc mà chưa được thông báo (winnerNotified = false)
+        List<Auction> endedAuctions = auctionRepository.findByAuctionEndTimeBeforeAndWinnerNotifiedFalse(LocalDateTime.now());
+        for (Auction auction : endedAuctions) {
+            // Kiểm tra nếu phiên đấu giá đã kết thúc quá 2 phút trước thì bỏ qua việc gửi email
+            if (auction.getAuctionEndTime().plusMinutes(2).isBefore(LocalDateTime.now())) {
+                continue;
+            }
+
+            Optional<Bid> winningBid = getCurrentHighestBid(auction.getAuctionId());
+            if (winningBid.isPresent()) {
+                Customer winner = winningBid.get().getCustomer();
+                sendWinnerEmail(winner.getEmail(), auction);
+
+                Customer seller = customerRepository.findByAccountUsername(
+                        auction.getProduct().getAccount().getUsername()
+                ).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người bán!"));
+
+                sendOwnerNotificationEmail(auction, seller, winner);
+            }
+
+            auction.setWinnerNotified(true);
+            auctionRepository.save(auction);
+        }
+    }
+
+    private void sendWinnerEmail(String recipientEmail, Auction auction) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(recipientEmail);
+        message.setSubject("Thông báo kết thúc phiên đấu giá");
+        message.setText("Chúc mừng! Bạn đã chiến thắng phiên đấu giá số " + auction.getAuctionId() +
+                ". Vui lòng thanh toán trong vòng 3 ngày, nếu không bạn sẽ mất tiền đặt cọc.");
+        mailSender.send(message);
+    }
+
+    private void sendOwnerNotificationEmail(Auction auction, Customer seller, Customer winner) {
+        String recipientEmail = seller.getEmail();
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(recipientEmail);
+        message.setSubject("Thông báo kết thúc phiên đấu giá");
+        message.setText("Phiên đấu giá số " + auction.getAuctionId() + " của bạn đã kết thúc. " +
+                "Người chiến thắng là: " + winner.getAccount().getUsername() +
+                ". Vui lòng liên hệ với người chiến thắng và hoàn tất giao dịch trong vòng 3 ngày.");
+        mailSender.send(message);
     }
 }

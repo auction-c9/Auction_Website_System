@@ -7,6 +7,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
+import org.springframework.security.authentication.DisabledException;
+
 
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +25,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+        if (account.isLocked()) {
+            throw new DisabledException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
+        }
 
         // Lấy role từ account
         String roleName = account.getRole().getName();
@@ -38,4 +43,5 @@ public class CustomUserDetailsService implements UserDetailsService {
                 authorities
         );
     }
+
 }

@@ -85,5 +85,13 @@ public class Auction {
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
+    @Column(name = "winner_notified", nullable = false)
+    private Boolean winnerNotified = false;
+    public BigDecimal getHighestBid() {
+        return bids.stream()
+                .map(Bid::getBidAmount)
+                .max(BigDecimal::compareTo)
+                .orElse(currentPrice); // Nếu chưa có bid, trả về giá hiện tại
+    }
 
 }

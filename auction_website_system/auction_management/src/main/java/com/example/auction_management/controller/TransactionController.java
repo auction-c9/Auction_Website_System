@@ -1,7 +1,7 @@
 package com.example.auction_management.controller;
 
 import com.example.auction_management.dto.TransactionDTO;
-import com.example.auction_management.service.TransactionService;
+import com.example.auction_management.service.ITransactionService;
 import com.example.auction_management.service.VnpayService;
 import com.example.auction_management.service.PaypalService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ import java.util.Map;
 public class TransactionController {
 
     @Autowired
-    private TransactionService transactionService;
+    private ITransactionService transactionService;
 
     @Autowired
     private VnpayService vnPayService;
