@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.Period;
 
 @Getter
 @Setter
@@ -40,5 +41,18 @@ public class CustomerDTO {
 
     private MultipartFile avatarFile; // File ảnh upload
     private String avatarUrl; // URL từ Cloudinary
+
+    @NotBlank(message = "Số tài khoản không được để trống")
+    @Pattern(regexp = "\\d{10,20}", message = "Số tài khoản phải có từ 10 đến 20 chữ số")
+    private String bankAccount;
+
+    @NotBlank(message = "Tên ngân hàng không được để trống")
+    private String bankName;
+
+    @AssertTrue(message = "Bạn phải đủ 18 tuổi")
+    public boolean isAdult() {
+        if (dob == null) return false;
+        return Period.between(dob, LocalDate.now()).getYears() >= 18;
+    }
 }
 

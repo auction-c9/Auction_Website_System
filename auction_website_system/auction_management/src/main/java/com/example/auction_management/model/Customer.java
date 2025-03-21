@@ -10,6 +10,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -69,4 +71,8 @@ public class Customer {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "avatar_id", referencedColumnName = "id")
     private Image avatar;
+
+    // Trong lớp Customer
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private List<AuctionRegistration> registrations = new ArrayList<>();
 }

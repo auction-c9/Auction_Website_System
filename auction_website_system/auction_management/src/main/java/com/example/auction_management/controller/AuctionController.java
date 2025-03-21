@@ -94,17 +94,12 @@ public class AuctionController {
     }
 
     @GetMapping("/registered-history")
-    public ResponseEntity<List<RegisteredAuctionDTO>> getRegisteredAuctions(Authentication authentication) {
+    public ResponseEntity<?> registerForAuction(
+            Authentication authentication
+    ) {
         try {
-            // Kiểm tra authentication hợp lệ
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-
-            // Lấy customerId từ details
             Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
             Integer customerId = (Integer) details.get("customerId");
-
             List<RegisteredAuctionDTO> auctions = auctionService.getRegisteredAuctionsByCustomerId(customerId);
             return ResponseEntity.ok(auctions);
         } catch (Exception e) {
@@ -113,17 +108,17 @@ public class AuctionController {
     }
 
     @DeleteMapping("/cancel/{auctionId}")
-    public ResponseEntity<?> cancelAuction(@PathVariable Integer auctionId, Authentication authentication) {
+    public ResponseEntity<?> unregisterFromAuction(
+            @PathVariable Integer auctionId,
+            Authentication authentication
+    ) {
         try {
-            Integer customerId = (Integer) ((Map<?, ?>) authentication.getDetails()).get("customerId");
-            auctionService.cancelAuction(auctionId, customerId);
-            return ResponseEntity.ok(Map.of("message", "Hủy phiên đấu giá thành công"));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+            Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
+            Integer customerId = (Integer) details.get("customerId");
+            auctionService.unregisterCustomerFromAuction(customerId, auctionId);
+            return ResponseEntity.ok(Map.of("message", "Hủy đăng ký thành công"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Lỗi hệ thống"));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }

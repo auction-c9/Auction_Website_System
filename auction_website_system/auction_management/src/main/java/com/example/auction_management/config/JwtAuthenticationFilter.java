@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
         return
-                // Các endpoint auth
+                // Các endpoint auth không cần xác thực
                 path.startsWith("/api/auth/login") ||
                         path.equals("/api/auth/register") ||
                         path.equals("/api/auth/google") ||
@@ -40,11 +40,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         // Các endpoint GET public trong /api/auctions
                         (method.equals("GET") && (
-                                path.equals("/api/auctions") || // GET /api/auctions
-                                        path.startsWith("/api/auctions/status/") || // GET /api/auctions/status/*
-                                        path.startsWith("/api/auctions/ongoing") || // GET /api/auctions/ongoing
-                                        path.startsWith("/api/auctions/product/") || // GET /api/auctions/product/*
-                                        path.matches("/api/auctions/\\d+") // GET /api/auctions/{id} (ví dụ: /api/auctions/1)
+                                path.equals("/api/auctions") ||
+                                        path.startsWith("/api/auctions/status/") ||
+                                        path.startsWith("/api/auctions/ongoing") ||
+                                        path.startsWith("/api/auctions/product/") ||
+                                        path.matches("/api/auctions/\\d+")
                         )) ||
 
                         // Các endpoint GET public khác
@@ -65,9 +65,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String username = jwtTokenProvider.getUsernameFromToken(token);
                     Integer customerId = jwtTokenProvider.getCustomerIdFromToken(token);
                     String role = jwtTokenProvider.getRoleFromToken(token);
+                    logger.info("Role from token: " + role);
 
                     // Tạo UserDetails và Authentication
                     UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                    logger.info("User authorities: " + userDetails.getAuthorities());
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities()
                     );
