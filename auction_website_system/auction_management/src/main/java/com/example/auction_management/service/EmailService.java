@@ -89,4 +89,12 @@ public class EmailService {
             throw new EmailException("Không thể gửi email: " + e.getMessage());
         }
     }
+
+    public void sendEmail(String to, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
+    }
 }

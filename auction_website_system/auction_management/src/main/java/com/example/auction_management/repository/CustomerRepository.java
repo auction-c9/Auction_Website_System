@@ -20,4 +20,5 @@ public interface CustomerRepository extends JpaRepository<Customer, Integer> {
     @Query("SELECT c FROM customers c WHERE c.account.role.name <> 'ROLE_ADMIN'")
     Page<Customer> findAllNonAdminCustomers(Pageable pageable);
 
+
 }

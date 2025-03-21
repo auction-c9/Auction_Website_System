@@ -103,7 +103,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auth/profile").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers("/api/bids/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
-                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/admin/**", "/api/accounts/warning/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
