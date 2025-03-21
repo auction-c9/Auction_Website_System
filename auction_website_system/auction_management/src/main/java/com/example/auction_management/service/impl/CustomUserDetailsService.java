@@ -25,6 +25,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+        // Kiểm tra violation_count
+        if (account.getViolationCount() != null && account.getViolationCount() >= 3) {
+            account.setLocked(true);
+            accountRepository.save(account);
+
+            throw new DisabledException("Tài khoản của bạn đã bị khóa do vi phạm quá 3 lần. Vui lòng liên hệ Admin!");
+        }
+
         if (account.isLocked()) {
             throw new DisabledException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
         }
