@@ -10,7 +10,10 @@ import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IProductService;
+import com.example.auction_management.validation.AuctionCreateGroup;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import jakarta.validation.Validator;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -35,6 +39,8 @@ public class ProductService implements IProductService {
     private final ImageRepository imageRepository;
     private final AuctionRepository auctionRepository;
     private final AccountRepository accountRepository;
+    private final Validator validator;
+
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
 
@@ -213,6 +219,15 @@ public class ProductService implements IProductService {
                 .isDeleted(false)
                 .winnerNotified(false) // Thêm dòng này để đảm bảo trường không null
                 .build();
+
+        // Validate theo nhóm AuctionCreateGroup
+        Set<ConstraintViolation<Auction>> violations = validator.validate(auction, AuctionCreateGroup.class);
+        if (!violations.isEmpty()) {
+            // Nếu có lỗi, ném ra exception hoặc xử lý theo cách bạn muốn
+            throw new ConstraintViolationException(violations);
+        }
+
+        auctionRepository.save(auction);
         return auctionRepository.save(auction);
     }
 

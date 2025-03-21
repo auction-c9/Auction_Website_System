@@ -38,6 +38,9 @@ public class Account {
     @Column(name = "is_locked", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean isLocked;
 
+    @Column(name = "violation_count", nullable = false)
+    private Integer violationCount = 0;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", columnDefinition = "ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL'")

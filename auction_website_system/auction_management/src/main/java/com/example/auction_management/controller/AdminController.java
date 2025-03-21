@@ -1,11 +1,11 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.dto.StatisticsDTO;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.model.Customer;
 import com.example.auction_management.model.Product;
-import com.example.auction_management.service.IAccountService;
-import com.example.auction_management.service.ICustomerService;
-import com.example.auction_management.service.IProductService;
+import com.example.auction_management.model.Transaction;
+import com.example.auction_management.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +16,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -34,6 +36,9 @@ public class AdminController {
 
     @Autowired
     private IProductService productService;
+    
+    @Autowired
+    private ITransactionService transactionService;
 
     @GetMapping("/profile")
     public ResponseEntity<Account> getAdminProfile(Principal principal) {
@@ -70,5 +75,6 @@ public class AdminController {
         Product product = productService.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
         return new ResponseEntity<>(product, HttpStatus.OK);
     }
+
 
 }

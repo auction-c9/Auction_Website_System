@@ -1,9 +1,11 @@
 package com.example.auction_management.service.impl;
 
 import com.example.auction_management.model.Account;
+import com.example.auction_management.model.Customer;
 import com.example.auction_management.repository.AccountRepository;
 import com.example.auction_management.repository.CustomerRepository;
 import com.example.auction_management.repository.RoleRepository;
+import com.example.auction_management.service.EmailService;
 import com.example.auction_management.service.IAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +27,22 @@ public class AccountService implements IAccountService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+        public void sendWarningEmail(Integer accountId) {
+            Account account = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+            Customer customer = account.getCustomer();
+            if (customer == null || customer.getEmail() == null) {
+                throw new RuntimeException("Không tìm thấy email của tài khoản");
+            }
+
+            emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung",
+                    "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.");
+        }
 
     @Override
     public Optional<Account> findAccountByUsername(String username) {
@@ -53,5 +71,7 @@ public class AccountService implements IAccountService {
         }
         return false;
     }
+
+
 
 }

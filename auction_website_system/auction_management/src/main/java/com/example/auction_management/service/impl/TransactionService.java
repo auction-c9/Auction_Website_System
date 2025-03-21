@@ -40,7 +40,7 @@ public class TransactionService implements ITransactionService {
 
     @Override
     public List<Transaction> findAll() {
-        return List.of();
+        return transactionRepository.findAll();
     }
 
     @Override

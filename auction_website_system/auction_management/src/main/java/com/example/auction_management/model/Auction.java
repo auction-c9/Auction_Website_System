@@ -1,5 +1,7 @@
+// src/main/java/com/example/auction_management/model/Auction.java
 package com.example.auction_management.model;
 
+import com.example.auction_management.validation.AuctionCreateGroup;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -8,7 +10,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -39,13 +40,15 @@ public class Auction {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Product product;
 
-    @NotNull(message = "Thời gian bắt đầu không được để trống")
-    @Future(message = "Thời gian bắt đầu phải trong tương lai")
+    // Chỉ validate khi tạo mới (AuctionCreateGroup)
+    @NotNull(message = "Thời gian bắt đầu không được để trống", groups = AuctionCreateGroup.class)
+    @Future(message = "Thời gian bắt đầu phải trong tương lai", groups = AuctionCreateGroup.class)
     @Column(name = "auction_start_time", nullable = false)
     private LocalDateTime auctionStartTime;
 
-    @NotNull(message = "Thời gian kết thúc không được để trống")
-    @Future(message = "Thời gian kết thúc phải trong tương lai")
+    // Chỉ validate khi tạo mới (AuctionCreateGroup)
+    @NotNull(message = "Thời gian kết thúc không được để trống", groups = AuctionCreateGroup.class)
+    @Future(message = "Thời gian kết thúc phải trong tương lai", groups = AuctionCreateGroup.class)
     @Column(name = "auction_end_time", nullable = false)
     private LocalDateTime auctionEndTime;
 
@@ -60,7 +63,7 @@ public class Auction {
     private BigDecimal bidStep;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false,length = 10)
+    @Column(name = "status", nullable = false, length = 10)
     private AuctionStatus status;
 
     @CreationTimestamp
@@ -74,7 +77,6 @@ public class Auction {
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted = false;
 
-    // Đổi tên trường để khớp với Service (getBids)
     @OneToMany(mappedBy = "auction", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JsonIgnoreProperties("auction")
     private List<Bid> bids = new ArrayList<>();
@@ -85,12 +87,14 @@ public class Auction {
     public enum AuctionStatus {
         pending, active, ended, canceled
     }
+
     @Column(name = "winner_notified", nullable = false)
     private Boolean winnerNotified = false;
+
     public BigDecimal getHighestBid() {
         return bids.stream()
                 .map(Bid::getBidAmount)
                 .max(BigDecimal::compareTo)
-                .orElse(currentPrice); // Nếu chưa có bid, trả về giá hiện tại
+                .orElse(currentPrice);
     }
 }

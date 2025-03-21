@@ -64,6 +64,7 @@ dependencies {
     implementation 'org.apache.httpcomponents:httpclient:4.5.13'
     // spring boot nhận biến từ file .env
     implementation 'me.paulschwarz:spring-dotenv:3.0.0'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
 
 tasks.named('test') {
