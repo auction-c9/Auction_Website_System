@@ -16,5 +16,5 @@ public interface BidRepository extends JpaRepository<Bid, Integer> {
     List<Bid> findByAuction_AuctionIdOrderByBidAmountDesc(Integer auctionId);
     @Query("SELECT b FROM Bid b WHERE b.auction.auctionId = :auctionId")
     List<Bid> findByAuctionId(@Param("auctionId") Integer auctionId);
-
+    List<Bid> findByCustomer_CustomerIdOrderByBidTimeDesc(Integer customerId);
 }

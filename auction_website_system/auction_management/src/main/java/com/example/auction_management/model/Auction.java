@@ -93,5 +93,4 @@ public class Auction {
                 .max(BigDecimal::compareTo)
                 .orElse(currentPrice); // Nếu chưa có bid, trả về giá hiện tại
     }
-
 }

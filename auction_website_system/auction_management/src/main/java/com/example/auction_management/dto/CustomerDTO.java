@@ -1,9 +1,11 @@
 package com.example.auction_management.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -12,8 +14,9 @@ import java.time.Period;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class CustomerDTO {
-    private String username; // Tên đăng nhập (từ Account)
+    private String username;
 
     @NotBlank(message = "Họ tên không được để trống")
     private String name;
@@ -22,6 +25,7 @@ public class CustomerDTO {
     @NotBlank(message = "Email không được để trống")
     private String email;
 
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @Past(message = "Ngày sinh không hợp lệ")
     private LocalDate dob;
 

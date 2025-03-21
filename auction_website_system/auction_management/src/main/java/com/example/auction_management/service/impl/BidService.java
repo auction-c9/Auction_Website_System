@@ -56,6 +56,32 @@ public class BidService implements IBidService {
         bidRepository.delete(bid);
     }
 
+    public List<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId) {
+        List<Bid> bids = bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId);
+        return bids.stream()
+                .map(this::mapToBidResponseDTOByCustomer)
+                .collect(Collectors.toList());
+    }
+
+    // Sửa lại phương thức mapToBidResponseDTO để thêm thông tin từ Auction
+    private BidResponseDTO mapToBidResponseDTOByCustomer(Bid bid) {
+        Auction auction = bid.getAuction();
+        Product product = auction.getProduct();
+        return BidResponseDTO.builder()
+                .bidId(bid.getBidId())
+                .auctionId(bid.getAuction().getAuctionId())
+                .customerId(bid.getCustomer().getCustomerId())
+                .bidAmount(bid.getBidAmount())
+                .bidTime(bid.getBidTime())
+                .isWinner(bid.getIsWinner())
+                .message("Thông tin đấu giá")
+                .user(bid.getAccount())
+                .registrationDate(bid.getAuction().getCreatedAt())
+                .productName(product.getName())
+                .auctionStatus(auction.getStatus().toString())
+                .build();
+    }
+
     // ---------------------- PLACE BID LOGIC ----------------------
     @Override
     @Transactional

@@ -8,6 +8,7 @@ import com.example.auction_management.service.impl.CaptchaService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/auth")
@@ -49,38 +51,22 @@ public class AuthController {
 
     // Cập nhật thông tin cá nhân
     @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateProfile(
-            @ModelAttribute CustomerDTO customerDTO,
-            Authentication authentication
-    ) {
+    public ResponseEntity<?> updateProfile(@ModelAttribute CustomerDTO customerDTO, Authentication authentication) {
+        log.info("Received CustomerDTO: {}", customerDTO);
         String username = authentication.getName();
         return ResponseEntity.ok(authService.updateCustomerProfile(username, customerDTO));
     }
 
-    @PostMapping("/change-password")
+    @PutMapping("/change-password")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public ResponseEntity<?> changePassword(
-            @Validated @RequestBody ChangePasswordRequest request,
-            Authentication authentication
-    ) {
-        authService.changePassword(
-                authentication.getName(),
-                request.getCurrentPassword(),
-                request.getNewPassword(),
-                request.getConfirmPassword()
-        );
+    public ResponseEntity<?> changePassword(@Validated @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        authService.changePassword(authentication.getName(), request.getCurrentPassword(), request.getNewPassword(), request.getConfirmPassword());
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(
-            @Validated(ForgotPasswordDTO.Step3.class) @RequestBody ForgotPasswordDTO dto
-    ) {
-        authService.resetPassword(
-                dto.getUsername(),
-                dto.getNewPassword(),
-                dto.getConfirmPassword()
-        );
+    public ResponseEntity<?> resetPassword(@Validated(ForgotPasswordDTO.Step3.class) @RequestBody ForgotPasswordDTO dto) {
+        authService.resetPassword(dto.getUsername(), dto.getNewPassword(), dto.getConfirmPassword());
         return ResponseEntity.ok("Đặt lại mật khẩu thành công");
     }
 
@@ -117,10 +103,7 @@ public class AuthController {
     }
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> register(
-            @Validated @ModelAttribute AccountDto accountDto,
-            HttpSession session
-    ) {
+    public ResponseEntity<?> register(@Validated @ModelAttribute AccountDto accountDto, HttpSession session) {
         Map<String, String> response = new HashMap<>();
         try {
             // Kiểm tra captcha
@@ -177,17 +160,13 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(
-            @Validated(ForgotPasswordDTO.Step1.class) @RequestBody ForgotPasswordDTO dto
-    ) {
+    public ResponseEntity<?> forgotPassword(@Validated(ForgotPasswordDTO.Step1.class) @RequestBody ForgotPasswordDTO dto) {
         authService.initiatePasswordReset(dto.getUsername());
         return ResponseEntity.ok("Mã xác nhận đã được gửi đến email đăng ký");
     }
 
     @PostMapping("/verify-reset-code")
-    public ResponseEntity<?> verifyResetCode(
-            @Validated(ForgotPasswordDTO.Step2.class) @RequestBody ForgotPasswordDTO dto
-    ) {
+    public ResponseEntity<?> verifyResetCode(@Validated(ForgotPasswordDTO.Step2.class) @RequestBody ForgotPasswordDTO dto) {
         authService.validateResetCode(dto.getUsername(), dto.getCode());
         return ResponseEntity.ok("Mã xác nhận hợp lệ");
     }
