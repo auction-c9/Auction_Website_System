@@ -28,4 +28,8 @@ public class Notification {
     private LocalDateTime timestamp;
 
     private Boolean isRead = false;
+    public Notification(String message, boolean isRead) {
+        this.message = message;
+        this.isRead = isRead;
+    }
 }

@@ -128,10 +128,11 @@ public class BidService implements IBidService {
         Bid savedBid = bidRepository.save(newBid);
 
         // Gửi thông báo đến người bán
-        Integer ownerAccountId = auction.getProduct().getAccount().getAccountId();
-        System.out.println("Owner Account ID: " + ownerAccountId);
-        System.out.println("Sending notification to seller: " + ownerAccountId);
-        notificationService.sendNotification(ownerAccountId, "Có người vừa đặt giá mới cho sản phẩm của bạn!");
+        Customer seller = auction.getProduct().getAccount().getCustomer();
+
+        System.out.println("Owner Account ID: " + seller);
+        System.out.println("Sending notification to seller: " + seller);
+        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!");
 
         // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
         // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
@@ -249,7 +250,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 60000) // Mỗi 60 giây
+    @Scheduled(fixedRate = 600000) // Mỗi 60 giây
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái của các phiên đấu giá dựa trên thời gian hiện tại
