@@ -6,8 +6,10 @@ import com.example.auction_management.exception.*;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IBidService;
+import com.example.auction_management.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +22,13 @@ import java.util.stream.Collectors;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +38,7 @@ public class BidService implements IBidService {
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
     @Autowired
     private JavaMailSender mailSender;
 
@@ -54,6 +64,32 @@ public class BidService implements IBidService {
         Bid bid = bidRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giá thầu với ID: " + id));
         bidRepository.delete(bid);
+    }
+
+    public List<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId) {
+        List<Bid> bids = bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId);
+        return bids.stream()
+                .map(this::mapToBidResponseDTOByCustomer)
+                .collect(Collectors.toList());
+    }
+
+    // Sửa lại phương thức mapToBidResponseDTO để thêm thông tin từ Auction
+    private BidResponseDTO mapToBidResponseDTOByCustomer(Bid bid) {
+        Auction auction = bid.getAuction();
+        Product product = auction.getProduct();
+        return BidResponseDTO.builder()
+                .bidId(bid.getBidId())
+                .auctionId(bid.getAuction().getAuctionId())
+                .customerId(bid.getCustomer().getCustomerId())
+                .bidAmount(bid.getBidAmount())
+                .bidTime(bid.getBidTime())
+                .isWinner(bid.getIsWinner())
+                .message("Thông tin đấu giá")
+                .user(bid.getAccount())
+                .registrationDate(bid.getAuction().getCreatedAt())
+                .productName(product.getName())
+                .auctionStatus(auction.getStatus().toString())
+                .build();
     }
 
     // ---------------------- PLACE BID LOGIC ----------------------
@@ -91,8 +127,26 @@ public class BidService implements IBidService {
         newBid.setIsWinner(Boolean.TRUE);
         Bid savedBid = bidRepository.save(newBid);
 
+        // Gửi thông báo đến người bán
+        Customer seller = auction.getProduct().getAccount().getCustomer();
+
+        System.out.println("Owner Account ID: " + seller);
+        System.out.println("Sending notification to seller: " + seller);
+        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!");
+
+        // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
+        // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
+        List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auction.getAuctionId());
+        for (Customer participant : participants) {
+            if (!participant.getCustomerId().equals(customer.getCustomerId())) {
+                System.out.println("Sending notification to participant: " + participant.getCustomerId());
+                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!");
+            }
+        }
+
         return mapToBidResponseDTO(savedBid);
     }
+
 
     // ---------------------- HISTORY & WINNER ----------------------
 
@@ -196,7 +250,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 60000) // Mỗi 60 giây
+    @Scheduled(fixedRate = 600000) // Mỗi 60 giây
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái của các phiên đấu giá dựa trên thời gian hiện tại
@@ -205,7 +259,6 @@ public class BidService implements IBidService {
         // Lấy danh sách các phiên đấu giá đã kết thúc mà chưa được thông báo (winnerNotified = false)
         List<Auction> endedAuctions = auctionRepository.findByAuctionEndTimeBeforeAndWinnerNotifiedFalse(LocalDateTime.now());
         for (Auction auction : endedAuctions) {
-            // Kiểm tra nếu phiên đấu giá đã kết thúc quá 2 phút trước thì bỏ qua việc gửi email
             if (auction.getAuctionEndTime().plusMinutes(2).isBefore(LocalDateTime.now())) {
                 continue;
             }
@@ -220,11 +273,15 @@ public class BidService implements IBidService {
                 ).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người bán!"));
 
                 sendOwnerNotificationEmail(auction, seller, winner);
+
+                // Gửi email cho người đấu giá thất bại
+                sendLoserEmails(auction, winner);
             }
 
             auction.setWinnerNotified(true);
             auctionRepository.save(auction);
         }
+
     }
 
     private void sendWinnerEmail(String recipientEmail, Auction auction) {
@@ -245,5 +302,105 @@ public class BidService implements IBidService {
                 "Người chiến thắng là: " + winner.getAccount().getUsername() +
                 ". Vui lòng liên hệ với người chiến thắng và hoàn tất giao dịch trong vòng 3 ngày.");
         mailSender.send(message);
+    }
+    private void sendLoserEmails(Auction auction, Customer winner) {
+        List<Bid> allBids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auction.getAuctionId());
+
+        for (Bid bid : allBids) {
+            Customer bidder = bid.getCustomer();
+            if (!bidder.getCustomerId().equals(winner.getCustomerId())) {
+                sendLoserEmail(bidder.getEmail(), auction);
+            }
+        }
+    }
+
+    private void sendLoserEmail(String recipientEmail, Auction auction) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(recipientEmail);
+        message.setSubject("Thông báo kết thúc phiên đấu giá");
+        message.setText("Rất tiếc! Bạn đã không chiến thắng phiên đấu giá số " + auction.getAuctionId() +
+                ". Tiền đặt cọc sẽ được hoàn trả vào tài khoản của bạn trong 3 ngày làm việc tiếp theo.");
+        mailSender.send(message);
+    }
+    public byte[] exportFailedBidsToExcel() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime yesterday = now.minusDays(1);
+
+        List<Transaction> failedDeposits = transactionRepository.findFailedDeposits(yesterday, now);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Failed Bids");
+
+            // Tạo tiêu đề
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Auction ID", "Product Name", "Customer Name", "Identity Card", "Phone", "Bank Account", "Bank Name", "Deposit Amount"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(createHeaderStyle(workbook));
+            }
+
+            // Thêm dữ liệu
+            int rowNum = 1;
+            for (Transaction transaction : failedDeposits) {
+                Row row = sheet.createRow(rowNum++);
+                Auction auction = transaction.getAuction();
+                Customer customer = transaction.getCustomer();
+
+                row.createCell(0).setCellValue(auction.getAuctionId());
+                row.createCell(1).setCellValue(auction.getProduct().getName());
+                row.createCell(2).setCellValue(customer.getName());
+                row.createCell(3).setCellValue(customer.getIdentityCard());
+                row.createCell(4).setCellValue(customer.getPhone());
+                row.createCell(5).setCellValue(customer.getBankAccount());
+                row.createCell(6).setCellValue(customer.getBankName());
+                row.createCell(7).setCellValue(transaction.getAmount().doubleValue());
+            }
+
+            // Ghi file vào byte array
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel", e);
+        }
+    }
+
+
+    // Tạo style cho header
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        return style;
+    }
+    public void sendFailedBidsReportToAdmin() {
+        byte[] excelFile = exportFailedBidsToExcel();
+        List<String> adminEmails = customerRepository.findAdminEmails();
+
+        if (adminEmails.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy email của ADMIN!");
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(adminEmails.toArray(new String[0]));
+            helper.setSubject("Báo cáo danh sách đấu giá thất bại");
+            helper.setText("Gửi ADMIN,\n\nĐây là danh sách những tài khoản đã tham gia đấu giá nhưng không chiến thắng.");
+
+            // Đính kèm file Excel
+            helper.addAttachment("Failed_Bids_Report.xlsx", new ByteArrayResource(excelFile));
+
+            mailSender.send(message);
+            System.out.println("Email báo cáo đã được gửi thành công!");
+        } catch (MessagingException e) {
+            throw new RuntimeException("Lỗi khi gửi email!", e);
+        }
+    }
+    @Scheduled(cron = "0 53 15 * * ?")
+    public void scheduleFailedBidsReport() {
+        sendFailedBidsReportToAdmin();
     }
 }

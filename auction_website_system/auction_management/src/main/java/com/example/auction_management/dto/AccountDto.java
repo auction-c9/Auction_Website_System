@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ public class AccountDto {
     @NotNull(message = "Ảnh đại diện không được để trống")
     private MultipartFile avatarFile;
 
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @NotNull(message = "Ngày sinh không được để trống")
     @Past(message = "Ngày sinh phải là ngày trong quá khứ")
     private LocalDate dob;

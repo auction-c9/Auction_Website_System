@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,16 @@ public class BidController {
 
     private final BidService bidService;
     private final SimpMessagingTemplate messagingTemplate;
+
+    @GetMapping("/user")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<List<BidResponseDTO>> getBidHistoryByCurrentUser(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Integer customerId = bidService.getCustomerIdFromUsername(userDetails.getUsername());
+        List<BidResponseDTO> bidHistory = bidService.getBidHistoryByCustomerId(customerId);
+        return ResponseEntity.ok(bidHistory);
+    }
+
 
     /**
      * API đặt giá mới cho phiên đấu giá

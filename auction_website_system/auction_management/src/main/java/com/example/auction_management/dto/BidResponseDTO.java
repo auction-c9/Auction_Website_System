@@ -22,7 +22,21 @@ public class BidResponseDTO {
     private LocalDateTime bidTime;
     private Boolean isWinner;
     private String message;
+    private LocalDateTime registrationDate;
+    private String productName;
+    private String auctionStatus;
 
     // THÊM TRƯỜNG USER ĐỂ HIỂN THỊ THÔNG TIN TÀI KHOẢN NGƯỜI ĐẤU GIÁ
     private Account user;
+
+    public BidResponseDTO(Integer bidId, Integer auctionId, Integer customerId, BigDecimal bidAmount, LocalDateTime bidTime, Boolean isWinner, String message, Account user) {
+        this.bidId = bidId;
+        this.auctionId = auctionId;
+        this.customerId = customerId;
+        this.bidAmount = bidAmount;
+        this.bidTime = bidTime;
+        this.isWinner = isWinner;
+        this.message = message;
+        this.user = user;
+    }
 }

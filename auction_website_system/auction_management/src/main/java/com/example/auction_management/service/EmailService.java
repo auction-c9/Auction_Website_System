@@ -90,11 +90,18 @@ public class EmailService {
         }
     }
 
-    public void sendEmail(String to, String subject, String content) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(content);
-        mailSender.send(message);
-    }
-}
+    public void sendEmail(String to, String subject, String body) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom("daugiavn123@gmail.com");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, true);
+            mailSender.send(message);
+        } catch (Exception e) {
+            // Log chi tiết lỗi
+            e.printStackTrace();
+            throw new MailAuthenticationException("Lỗi khi gửi email", e);
+        }
+}}
