@@ -34,11 +34,11 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
 
     List<Auction> findByAuctionEndTimeBeforeAndWinnerNotifiedFalse(LocalDateTime endTime);
 
-    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
 
     @Modifying
     @Query("UPDATE Auction a SET a.winnerNotified = true WHERE a.auctionId = :auctionId")
     void markWinnerNotified(@Param("auctionId") Integer auctionId);
+
 
     @Transactional
     @Modifying
@@ -49,10 +49,19 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
             "ELSE 'ENDED' " +
             "END")
     void updateAuctionStatuses(@Param("now") LocalDateTime now);
-
     @Query("SELECT a FROM Auction a JOIN FETCH a.product p " +
             "WHERE p.account.accountId = :accountId " +
             "AND a.isDeleted = false " +
             "AND p.isDeleted = false")
     List<Auction> findActiveAuctionsByAccountId(@Param("accountId") Integer accountId);
+
+    List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
+
+    @Query("SELECT MONTH(a.auctionStartTime) AS month, COUNT(a) AS count " +
+            "FROM Auction a " +
+            "WHERE YEAR(a.auctionStartTime) = YEAR(CURRENT_DATE) " +
+            "GROUP BY MONTH(a.auctionStartTime) " +
+            "ORDER BY MONTH(a.auctionStartTime)")
+    List<Object[]> countAuctionsByMonth();
+
 }

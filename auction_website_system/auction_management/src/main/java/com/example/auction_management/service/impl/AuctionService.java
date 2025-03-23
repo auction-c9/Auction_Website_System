@@ -12,12 +12,13 @@ import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IAuctionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -254,6 +255,26 @@ public class AuctionService implements IAuctionService {
         Product product = auction.getProduct();
         product.setIsDeleted(true);
         productRepository.save(product);
+    }
+
+    @Override
+    public Map<Integer, Long> countAuctionsByMonth() {
+        List<Object[]> results = auctionRepository.countAuctionsByMonth();
+        Map<Integer, Long> auctionCounts = new LinkedHashMap<>();
+
+        // Khởi tạo danh sách đủ 12 tháng, mặc định giá trị là 0
+        for (int i = 1; i <= 12; i++) {
+            auctionCounts.put(i, 0L);
+        }
+
+        // Gán giá trị từ query vào map
+        for (Object[] result : results) {
+            Integer month = (Integer) result[0];  // Tháng
+            Long count = ((Number) result[1]).longValue();  // Số lượng đấu giá
+            auctionCounts.put(month, count);
+        }
+
+        return auctionCounts;
     }
 
     public ProfileResponseDTO getUserProfile(Integer accountId) {

@@ -12,7 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
-import java.util.Optional;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class AccountService implements IAccountService {
@@ -31,18 +34,19 @@ public class AccountService implements IAccountService {
     @Autowired
     private EmailService emailService;
 
-        public void sendWarningEmail(Integer accountId) {
-            Account account = accountRepository.findById(accountId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+    @Override
+    public void sendWarningEmail(Integer accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
-            Customer customer = account.getCustomer();
-            if (customer == null || customer.getEmail() == null) {
-                throw new RuntimeException("Không tìm thấy email của tài khoản");
-            }
-
-            emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung",
-                    "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.");
+        Customer customer = account.getCustomer();
+        if (customer == null || customer.getEmail() == null) {
+            throw new RuntimeException("Không tìm thấy email của tài khoản");
         }
+
+        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung",
+                "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.");
+    }
 
     @Override
     public Optional<Account> findAccountByUsername(String username) {
@@ -71,7 +75,19 @@ public class AccountService implements IAccountService {
         }
         return false;
     }
+    @Override
+    public List<Map<String, Object>> getNewUsersByDay(int days) {
+        LocalDateTime startDateTime = LocalDate.now().minusDays(days - 1).atStartOfDay(); // Chuyển thành 00:00:00
 
+        List<Object[]> results = accountRepository.countNewUsersPerDay(startDateTime);
 
-
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (Object[] row : results) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("date", row[0]);
+            data.put("count", row[1]);
+            response.add(data);
+        }
+        return response;
+    }
 }
