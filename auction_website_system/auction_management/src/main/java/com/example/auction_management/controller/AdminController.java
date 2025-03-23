@@ -1,24 +1,19 @@
 package com.example.auction_management.controller;
 
-import com.example.auction_management.dto.StatisticsDTO;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.model.Customer;
 import com.example.auction_management.model.Product;
-import com.example.auction_management.model.Transaction;
 import com.example.auction_management.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +72,34 @@ public class AdminController {
     public ResponseEntity<Product> getProductById(@PathVariable Integer productId) {
         Product product = productService.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
         return new ResponseEntity<>(product, HttpStatus.OK);
+    }
+
+    @PutMapping("/products/{productId}/hide")
+    public ResponseEntity<?> hideProduct(@PathVariable Integer productId) {
+        productService.deleteById(productId);
+        return ResponseEntity.ok("Sản phẩm đã bị ẩn");
+    }
+
+    @GetMapping("/products/all")
+    public ResponseEntity<Page<Product>> getAllProductsForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productService.getAllProducts(pageable); // Lấy tất cả sản phẩm
+
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+    @PutMapping("/products/{productId}/restore")
+    public ResponseEntity<String> restoreProduct(@PathVariable Integer productId) {
+        Product product = productService.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại!"));
+
+        product.setIsDeleted(false); // Bật lại sản phẩm
+        productService.save(product); // Lưu vào database
+
+        return ResponseEntity.ok("Sản phẩm đã được khôi phục!");
     }
 
     @GetMapping("/user-statistics")

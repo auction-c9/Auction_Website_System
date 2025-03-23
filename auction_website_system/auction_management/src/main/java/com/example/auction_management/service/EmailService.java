@@ -90,18 +90,25 @@ public class EmailService {
         }
     }
 
-    public void sendEmail(String to, String subject, String body) {
+    public void sendEmail(String to, String subject, String body, boolean isHtml) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
             helper.setFrom("daugiavn123@gmail.com");
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(body, true);
+            helper.setText(body, isHtml);
+
             mailSender.send(message);
-        } catch (Exception e) {
-            // Log chi tiết lỗi
-            e.printStackTrace();
-            throw new MailAuthenticationException("Lỗi khi gửi email", e);
+
+        } catch (MailAuthenticationException e) {
+            throw new MailAuthenticationException("Lỗi xác thực email. Vui lòng kiểm tra tài khoản gửi email!", e);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Không thể tạo email, vui lòng thử lại!", e);
+        } catch (MailException e) {
+            throw new RuntimeException("Lỗi trong quá trình gửi email, vui lòng thử lại!", e);
         }
-}}
+    }
+
+}

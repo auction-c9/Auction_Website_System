@@ -9,6 +9,7 @@ import com.example.auction_management.exception.ProductNotFoundException;
 import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
+import com.example.auction_management.service.EmailService;
 import com.example.auction_management.service.IProductService;
 import com.example.auction_management.validation.AuctionCreateGroup;
 import jakarta.transaction.Transactional;
@@ -25,7 +26,9 @@ import jakarta.validation.Validator;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.text.Normalizer;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +43,8 @@ public class ProductService implements IProductService {
     private final AuctionRepository auctionRepository;
     private final AccountRepository accountRepository;
     private final Validator validator;
+
+    private final EmailService emailService;
 
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
@@ -77,6 +82,12 @@ public class ProductService implements IProductService {
 
     // ------------------------- PRODUCT MANAGEMENT ----------------------------
 
+    private final List<String> bannedWords = Arrays.asList(
+            "chống phá", "khiêu dâm", "bạo lực", "phản động", "xâm phạm chủ quyền", "an ninh quốc gia"
+    ).stream().map(this::normalizeText).toList();
+
+    private static final Pattern DIACRITIC_PATTERN = Pattern.compile("\\p{M}");
+
     @Transactional
     @Override
     public Product createProduct(ProductDTO dto) {
@@ -85,13 +96,16 @@ public class ProductService implements IProductService {
 
         Customer customer = customerRepository.findByAccount_AccountId(account.getAccountId())
                 .orElseThrow(() -> new ProductCreationException("Tài khoản không liên kết với Customer"));
+        if (containsBannedWords(dto.getName()) || containsBannedWords(dto.getDescription())) {
+            System.out.println("Vi phạm từ cấm: " + dto.getName() + " hoặc " + dto.getDescription());
+            handleViolation(account);
+            throw new ProductCreationException("Nội dung sản phẩm chứa từ ngữ không hợp lệ!");
+        }
 
         try {
             Product product = buildProduct(dto, account, category);
             product = productRepository.save(product);
             uploadDetailImages(dto.getImageFiles(), product);
-
-            // Tạo auction và lưu vào database
             Auction auction = createAuction(dto, product);
 
             if (auctionRegistrationRepository.existsByAuctionAndCustomer(auction, customer)) {
@@ -109,8 +123,58 @@ public class ProductService implements IProductService {
         }
     }
 
+    private boolean containsBannedWords(String text) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String cleanedText = normalizeText(text);
+        System.out.println("🔍 Nội dung gốc: " + text);
+        System.out.println("✅ Nội dung sau chuẩn hóa: " + cleanedText);
+        boolean contains = bannedWords.stream().anyMatch(cleanedText::contains);
+        System.out.println("⚠️ Kết quả kiểm tra: " + (contains ? "Có chứa từ cấm!" : "Không có từ cấm."));
+
+        return contains;
+    }
+
+    private String normalizeText(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        normalized = DIACRITIC_PATTERN.matcher(normalized).replaceAll("");
+        return normalized.replaceAll("[^\\p{L}\\p{N}\\s]", "").replaceAll("\\s+", " ").trim().toLowerCase();
+    }
+
+    @Transactional
+    public void handleViolation(Account account) {
+        int newCount = account.getViolationCount() + 1;
+        account.setViolationCount(newCount);
+
+        accountRepository.save(account);
+        SecurityContextHolder.getContext().setAuthentication(null);
+
+        Customer customer = account.getCustomer();
+        String email = (customer != null) ? customer.getEmail() : null;
+
+        if (email == null) {
+            throw new RuntimeException("Không tìm thấy email của tài khoản");
+        }
+
+        if (newCount >= 3) {
+            account.setLocked(true);
+            account.setStatus(Account.AccountStatus.inactive);
+
+            emailService.sendEmail(email, "Thông báo khóa tài khoản",
+                    "Tài khoản của bạn đã bị khóa do vi phạm nội dung quá nhiều lần.", true);
+        } else {
+            emailService.sendEmail(email, "Cảnh báo vi phạm nội dung",
+                    "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.", true);
+        }
+    }
+
     @Override
     public Page<Product> getProducts(Pageable pageable) {
+        return productRepository.findByIsDeletedFalse(pageable); // Chỉ lấy sản phẩm chưa bị ẩn
+    }
+
+    @Override
+    public Page<Product> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable);
     }
 
