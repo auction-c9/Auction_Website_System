@@ -6,6 +6,7 @@ import com.example.auction_management.exception.*;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IBidService;
+import com.example.auction_management.service.NotificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -37,6 +38,7 @@ public class BidService implements IBidService {
     private final AuctionRepository auctionRepository;
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
     @Autowired
     private JavaMailSender mailSender;
 
@@ -125,8 +127,26 @@ public class BidService implements IBidService {
         newBid.setIsWinner(Boolean.TRUE);
         Bid savedBid = bidRepository.save(newBid);
 
+        // Gửi thông báo đến người bán
+        Customer seller = auction.getProduct().getAccount().getCustomer();
+
+        System.out.println("Owner Account ID: " + seller);
+        System.out.println("Sending notification to seller: " + seller);
+        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!");
+
+        // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
+        // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
+        List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auction.getAuctionId());
+        for (Customer participant : participants) {
+            if (!participant.getCustomerId().equals(customer.getCustomerId())) {
+                System.out.println("Sending notification to participant: " + participant.getCustomerId());
+                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!");
+            }
+        }
+
         return mapToBidResponseDTO(savedBid);
     }
+
 
     // ---------------------- HISTORY & WINNER ----------------------
 
@@ -230,7 +250,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 1000) // Mỗi 60 giây
+    @Scheduled(fixedRate = 600000) // Mỗi 60 giây
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái của các phiên đấu giá dựa trên thời gian hiện tại
