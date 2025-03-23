@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface BidRepository extends JpaRepository<Bid, Integer> {
     Optional<Bid> findTopByAuctionOrderByBidAmountDesc(Auction auction);

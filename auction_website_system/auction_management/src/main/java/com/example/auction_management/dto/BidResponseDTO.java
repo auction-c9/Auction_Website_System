@@ -28,6 +28,7 @@ public class BidResponseDTO {
     private LocalDateTime registrationDate;
     private String productName;
     private String auctionStatus;
+    private boolean hasReviewed;
 
     // THÊM TRƯỜNG USER ĐỂ HIỂN THỊ THÔNG TIN TÀI KHOẢN NGƯỜI ĐẤU GIÁ
     private Account user;

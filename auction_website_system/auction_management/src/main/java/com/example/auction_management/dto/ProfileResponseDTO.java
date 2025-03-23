@@ -27,7 +27,5 @@ public class ProfileResponseDTO {
         this.username = username;
         this.fullName = fullName;
         this.auctions = new ArrayList<>();
-
-
     }
 }

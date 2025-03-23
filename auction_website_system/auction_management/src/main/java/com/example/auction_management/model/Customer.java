@@ -1,6 +1,7 @@
 package com.example.auction_management.model;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -54,9 +55,11 @@ public class Customer {
     private BigDecimal averageRating;
 
     @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Review> receivedReviews = new ArrayList<>();
 
     @OneToMany(mappedBy = "buyer", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Review> givenReviews = new ArrayList<>();
 
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")

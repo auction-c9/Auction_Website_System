@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -39,6 +40,7 @@ public class BidService implements IBidService {
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
+    private final ReviewRepository reviewRepository;
     @Autowired
     private JavaMailSender mailSender;
 
@@ -67,9 +69,15 @@ public class BidService implements IBidService {
     }
 
     public List<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId) {
-        List<Bid> bids = bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId);
-        return bids.stream()
-                .map(this::mapToBidResponseDTOByCustomer)
+        Set<Integer> reviewedBidIds = reviewRepository.findReviewedBidIdsByCustomerId(customerId);
+
+        return bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId)
+                .stream()
+                .map(bid -> {
+                    BidResponseDTO dto = mapToBidResponseDTOByCustomer(bid);
+                    dto.setHasReviewed(reviewedBidIds.contains(bid.getBidId()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

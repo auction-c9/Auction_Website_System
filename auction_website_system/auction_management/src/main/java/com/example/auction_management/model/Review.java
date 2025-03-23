@@ -21,11 +21,11 @@ public class Review {
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "seller_id", referencedColumnName = "account_id", nullable = false)
+    @JoinColumn(name = "seller_id", referencedColumnName = "customer_id", nullable = false)
     private Customer seller;
 
     @ManyToOne
-    @JoinColumn(name = "buyer_id", referencedColumnName = "account_id", nullable = false)
+    @JoinColumn(name = "buyer_id", referencedColumnName = "customer_id", nullable = false)
     private Customer buyer;
 
     @ManyToOne
