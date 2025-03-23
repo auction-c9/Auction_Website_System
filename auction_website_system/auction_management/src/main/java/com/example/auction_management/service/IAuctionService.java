@@ -4,7 +4,9 @@ import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IAuctionService extends IService<Auction, Integer> {
@@ -12,4 +14,6 @@ public interface IAuctionService extends IService<Auction, Integer> {
     Optional<Auction> findByProduct(Product product);
 
     List<Auction> findOngoingAuctions();
+
+    Map<Integer, Long> countAuctionsByMonth();
 }

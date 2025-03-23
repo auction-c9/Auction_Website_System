@@ -4,11 +4,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@Entity(name = "accounts")
+@Entity
+@Table(name = "accounts")
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,6 +44,10 @@ public class Account {
 
     @Column(name = "violation_count", nullable = false)
     private Integer violationCount = 0;
+
+    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @NotNull
     @Enumerated(EnumType.STRING)
