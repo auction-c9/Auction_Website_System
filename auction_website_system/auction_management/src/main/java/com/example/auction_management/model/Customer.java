@@ -50,12 +50,14 @@ public class Customer {
     @JoinColumn(name = "account_id", referencedColumnName = "account_id")
     private Account account;
 
-    @Min(value = 0, message = "Đánh giá không được nhỏ hơn 0")
-    @Column(name = "rating", columnDefinition = "INT")
-    private Integer rating;
+    @Column(name = "average_rating", columnDefinition = "DECIMAL(3,2) DEFAULT 0.00")
+    private BigDecimal averageRating;
 
-    @Column(name = "feedback", columnDefinition = "TEXT")
-    private String feedback;
+    @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL)
+    private List<Review> receivedReviews = new ArrayList<>();
+
+    @OneToMany(mappedBy = "buyer", cascade = CascadeType.ALL)
+    private List<Review> givenReviews = new ArrayList<>();
 
     @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted;

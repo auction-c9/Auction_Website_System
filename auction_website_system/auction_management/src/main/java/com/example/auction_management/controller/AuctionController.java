@@ -1,6 +1,7 @@
 package com.example.auction_management.controller;
 
 import com.example.auction_management.dto.AuctionDTO;
+import com.example.auction_management.dto.ProfileResponseDTO;
 import com.example.auction_management.mapper.AuctionMapper;
 import com.example.auction_management.dto.RegisteredAuctionDTO;
 import com.example.auction_management.exception.ResourceNotFoundException;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.stream.Collectors;
@@ -120,5 +122,11 @@ public class AuctionController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    @GetMapping("/profile/{accountID}")
+    public ResponseEntity<ProfileResponseDTO> getUserProfile(@PathVariable Integer accountID) {
+        ProfileResponseDTO profile = auctionService.getUserProfile(accountID);
+        return ResponseEntity.ok(profile);
     }
 }

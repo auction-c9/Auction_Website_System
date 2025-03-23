@@ -8,6 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -67,6 +68,11 @@ public class SecurityConfig {
         return new ProviderManager(authProvider);
     }
 
+//    @Bean
+//    public ReviewSecurity reviewSecurity() {
+//        return new ReviewSecurity();
+//    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -97,9 +103,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/auctions", "/api/auctions/{id}", "/api/auctions/status/{status}",
                                 "/api/auctions/ongoing", "/api/auctions/product/{productId}", "/api/bids/auction/{id}"
                         ).permitAll()
+                        .requestMatchers("/api/reviews").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**","/api/auctions/profile/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auctions/cancel/**" ).authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auth/profile").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")

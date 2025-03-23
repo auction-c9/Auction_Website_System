@@ -1,6 +1,9 @@
 package com.example.auction_management.service.impl;
 
+import com.example.auction_management.dto.AuctionInfoDto;
+import com.example.auction_management.dto.ProfileResponseDTO;
 import com.example.auction_management.dto.RegisteredAuctionDTO;
+import com.example.auction_management.dto.ReviewDTO;
 import com.example.auction_management.exception.AuctionNotFoundException;
 import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.exception.UnauthorizedActionException;
@@ -28,6 +31,7 @@ public class AuctionService implements IAuctionService {
     private final BidRepository bidRepository;
     private final CustomerRepository customerRepository;
     private final AuctionRegistrationRepository auctionRegistrationRepository;
+    private final ReviewRepository reviewRepository;
 
     // ------------------ CORE SERVICES ----------------------
 
@@ -250,5 +254,63 @@ public class AuctionService implements IAuctionService {
         Product product = auction.getProduct();
         product.setIsDeleted(true);
         productRepository.save(product);
+    }
+
+    public ProfileResponseDTO getUserProfile(Integer accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        Customer customer = account.getCustomer();
+        if (customer == null) {
+            throw new RuntimeException("Customer not found");
+        }
+
+        ProfileResponseDTO profile = new ProfileResponseDTO();
+
+        // Lấy thông tin avatar
+        String avatarUrl = customer.getAvatar() != null ? customer.getAvatar().getImageUrl() : null;
+
+        // Lấy danh sách auction
+        List<Auction> auctions = auctionRepository.findActiveAuctionsByAccountId(accountId);
+
+        // Convert sang DTO
+        List<AuctionInfoDto> auctionDtos = auctions.stream()
+                .map(auction -> {
+                    AuctionInfoDto dto = new AuctionInfoDto();
+                    dto.setProductName(auction.getProduct().getName());
+                    dto.setAuctionStartTime(auction.getAuctionStartTime());
+                    dto.setAuctionEndTime(auction.getAuctionEndTime());
+                    dto.setBasePrice(auction.getProduct().getBasePrice());
+                    dto.setHighestBid(auction.getHighestBid());
+                    dto.setStatus(auction.getStatus());
+                    return dto;
+                })
+                .toList();
+
+        profile.setAvatarUrl(avatarUrl);
+        profile.setUsername(account.getUsername());
+        profile.setFullName(customer.getName());
+        profile.setAuctions(auctionDtos);
+
+        // Lấy đánh giá
+        List<Review> reviews = reviewRepository.findBySeller_CustomerId(customer.getCustomerId());
+        List<ReviewDTO> reviewDTOs = reviews.stream()
+                .map(this::convertToReviewDTO)
+                .toList();
+
+        profile.setAverageRating(customer.getAverageRating());
+        profile.setReviews(reviewDTOs);
+        return profile;
+    }
+
+    private ReviewDTO convertToReviewDTO(Review review) {
+        ReviewDTO dto = new ReviewDTO();
+        dto.setId(review.getId());
+        dto.setBuyerName(review.getBuyer().getName());
+        dto.setProductName(review.getBid().getAuction().getProduct().getName());
+        dto.setRating(review.getRating());
+        dto.setComment(review.getComment());
+        dto.setCreatedAt(review.getCreatedAt());
+        return dto;
     }
 }

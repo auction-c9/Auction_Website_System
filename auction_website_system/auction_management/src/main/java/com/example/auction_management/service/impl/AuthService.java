@@ -95,22 +95,20 @@ public class AuthService {
             if (!accountDto.getPassword().equals(accountDto.getConfirmPassword())) {
                 throw new IllegalArgumentException("Mật khẩu không khớp");
             }
-            // Xác thực mã
+
             if (!accountDto.getCaptcha().equals(storedCaptchaAnswer)) {
                 throw new IllegalArgumentException("Mã xác thực không chính xác");
             }
-            // Kiểm tra username
+
             if (accountRepository.existsByUsername(accountDto.getUsername())) {
                 throw new IllegalArgumentException("Username đã tồn tại");
             }
 
-            // Kiểm tra email đã đăng ký bằng Google
             Optional<Account> existingAccount = accountRepository.findByUsername(accountDto.getEmail());
             if (existingAccount.isPresent() && existingAccount.get().getAuthProvider() == Account.AuthProvider.GOOGLE) {
                 throw new IllegalArgumentException("Email đã được đăng ký bằng Google. Vui lòng đăng nhập bằng Google.");
             }
 
-            // Upload ảnh đại diện
             Image avatar = null;
             if (accountDto.getAvatarFile() != null && !accountDto.getAvatarFile().isEmpty()) {
                 try {
@@ -149,11 +147,9 @@ public class AuthService {
             customer.setAccount(account);
             account.setAuthProvider(Account.AuthProvider.LOCAL);
 
-            // Lưu vào database
             accountRepository.save(account);
             customerRepository.save(customer);
         } catch (Exception e) {
-            // Log lỗi và ném lại ngoại lệ
             e.printStackTrace();
             throw e;
         }
@@ -387,11 +383,13 @@ public class AuthService {
 
         // Cập nhật thông tin cơ bản
         customer.setName(customerDTO.getName());
+        customer.setEmail(customerDTO.getEmail());
         customer.setDob(customerDTO.getDob());
         customer.setPhone(customerDTO.getPhone());
+        customer.setBankAccount(customerDTO.getBankAccount());
+        customer.setBankName(customerDTO.getBankName());
         customer.setIdentityCard(customerDTO.getIdentityCard());
         customer.setAddress(customerDTO.getAddress());
-        customer.setBankAccount(customerDTO.getBankAccount());
 
         // Xử lý upload ảnh
         if (customerDTO.getAvatarFile() != null && !customerDTO.getAvatarFile().isEmpty()) {
