@@ -10,12 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,9 +39,9 @@ public class AdminController {
 
     @Autowired
     private IProductService productService;
-    
+
     @Autowired
-    private ITransactionService transactionService;
+    private IAuctionService auctionService;
 
     @GetMapping("/profile")
     public ResponseEntity<Account> getAdminProfile(Principal principal) {
@@ -74,6 +77,17 @@ public class AdminController {
     public ResponseEntity<Product> getProductById(@PathVariable Integer productId) {
         Product product = productService.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
         return new ResponseEntity<>(product, HttpStatus.OK);
+    }
+
+    @GetMapping("/user-statistics")
+    public ResponseEntity<List<Map<String, Object>>> getNewUsers(@RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(accountService.getNewUsersByDay(days));
+    }
+
+    @GetMapping("/auction-statistics")
+    public ResponseEntity<Map<Integer, Long>> getAuctionStatistics() {
+        Map<Integer, Long> auctionStats = auctionService.countAuctionsByMonth();
+        return ResponseEntity.ok(auctionStats);
     }
 
 

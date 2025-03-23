@@ -2,6 +2,7 @@ package com.example.auction_management.service;
 
 import com.example.auction_management.model.Account;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,4 +16,6 @@ public interface IAccountService {
     boolean unlockAccount(Integer accountId);
 
     boolean updateAccountLockStatus(Integer accountId, boolean lockStatus);
+
+    List<Map<String, Object>> getNewUsersByDay(int days);
 }

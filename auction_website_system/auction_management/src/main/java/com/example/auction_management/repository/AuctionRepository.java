@@ -49,4 +49,12 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     void markWinnerNotified(@Param("auctionId") Integer auctionId);
 
     List<Auction> findByProductInAndIsDeletedFalse(List<Product> products);
+
+    @Query("SELECT MONTH(a.auctionStartTime) AS month, COUNT(a) AS count " +
+            "FROM Auction a " +
+            "WHERE YEAR(a.auctionStartTime) = YEAR(CURRENT_DATE) " +
+            "GROUP BY MONTH(a.auctionStartTime) " +
+            "ORDER BY MONTH(a.auctionStartTime)")
+    List<Object[]> countAuctionsByMonth();
+
 }
