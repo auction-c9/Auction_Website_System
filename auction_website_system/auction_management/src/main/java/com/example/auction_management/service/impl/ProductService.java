@@ -179,6 +179,17 @@ public class ProductService implements IProductService {
     }
 
     @Transactional
+    @Override
+    public void deletePermanently(Integer productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+
+        product.setIsDeleted(true);
+        productRepository.save(product);
+    }
+
+
+    @Transactional
 
     public Product updateProduct(Integer productId, ProductDTO dto) {
         Product product = getProductByIdAndCheckOwner(productId);

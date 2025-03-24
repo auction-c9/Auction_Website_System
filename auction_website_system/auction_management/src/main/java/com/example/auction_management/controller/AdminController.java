@@ -74,11 +74,12 @@ public class AdminController {
         return new ResponseEntity<>(product, HttpStatus.OK);
     }
 
-    @PutMapping("/products/{productId}/hide")
-    public ResponseEntity<?> hideProduct(@PathVariable Integer productId) {
-        productService.deleteById(productId);
-        return ResponseEntity.ok("Sản phẩm đã bị ẩn");
+    @DeleteMapping("/products/{productId}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Integer productId) {
+        productService.deletePermanently(productId);
+        return ResponseEntity.ok("Sản phẩm đã bị xóa!");
     }
+
 
     @GetMapping("/products/all")
     public ResponseEntity<Page<Product>> getAllProductsForAdmin(

@@ -14,4 +14,5 @@ public interface IProductService extends IService<Product, Integer> {
     Page<Product> getProducts(Pageable pageable);
     Page<Product> getAllProducts(Pageable pageable);
 
+    void deletePermanently(Integer productId);
 }
