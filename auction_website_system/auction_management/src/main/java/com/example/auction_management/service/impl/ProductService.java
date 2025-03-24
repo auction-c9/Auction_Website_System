@@ -10,6 +10,7 @@ import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IProductService;
+import com.example.auction_management.service.NotificationService;
 import com.example.auction_management.validation.AuctionCreateGroup;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
@@ -43,6 +44,7 @@ public class ProductService implements IProductService {
 
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
+    private final NotificationService notificationService;
 
     private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
@@ -102,6 +104,7 @@ public class ProductService implements IProductService {
             registration.setAuction(auction);
             registration.setCustomer(customer);
             auctionRegistrationRepository.save(registration);
+            notificationService.notifyNewProduct(product);
             return product;
         } catch (IOException e) {
             logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);

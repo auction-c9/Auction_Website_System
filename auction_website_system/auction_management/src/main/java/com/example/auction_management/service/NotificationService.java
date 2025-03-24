@@ -1,14 +1,10 @@
 package com.example.auction_management.service;
 
-import com.example.auction_management.model.Auction;
-import com.example.auction_management.model.Customer;
-import com.example.auction_management.model.Notification;
-import com.example.auction_management.repository.AuctionRepository;
-import com.example.auction_management.repository.BidRepository;
-import com.example.auction_management.repository.CustomerRepository;
-import com.example.auction_management.repository.NotificationRepository;
+import com.example.auction_management.model.*;
+import com.example.auction_management.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +21,37 @@ public class NotificationService {
     private final CustomerRepository customerRepository;
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
-    private final SimpMessagingTemplate messagingTemplate; // Tiêm SimpMessagingTemplate
+    private final SimpMessagingTemplate messagingTemplate;
+    private final FollowRepository followRepository;
 
+    @Async
+    public void notifyNewProduct(Product product) {
+        try {
+            Customer seller = product.getAccount().getCustomer();
+            String message = String.format("Tài khoản %s vừa đăng sản phẩm mới: %s",
+                    seller.getName(), product.getName());
+
+            List<Follow> followers = followRepository.findBySeller(seller);
+
+            followers.forEach(follow -> {
+                // Tạo và lưu notification
+                Notification notification = new Notification();
+                notification.setCustomer(follow.getFollower());
+                notification.setMessage(message);
+                notification.setTimestamp(LocalDateTime.now());
+                notificationRepository.save(notification);
+
+                // Gửi qua WebSocket
+                messagingTemplate.convertAndSendToUser(
+                        follow.getFollower().getAccount().getUsername(),
+                        "/queue/notifications",
+                        notification
+                );
+            });
+        } catch (Exception e) {
+            logger.error("Error sending product notifications: {}", e.getMessage());
+        }
+    }
     /**
      * Gửi thông báo cho userId với nội dung message.
      * Thêm log để theo dõi quá trình tìm customer, lưu notification và gửi WebSocket.
