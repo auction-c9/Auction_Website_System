@@ -1,5 +1,6 @@
 package com.example.auction_management.repository;
 
+import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     List<Notification> findByCustomerCustomerIdOrderByTimestampDesc(@Param("customerId") Integer customerId);
 
     List<Notification> findByCustomer_CustomerIdAndAuction_AuctionId(Integer customerId, Integer auctionId);
+    void deleteByAuction(Auction auction);
+
 }

@@ -48,6 +48,8 @@ public class ProductService implements IProductService {
 
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
+    private final NotificationRepository notificationRepository;
+    private final TransactionRepository transactionRepository;
 
     private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
@@ -169,23 +171,24 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<Product> getProducts(Pageable pageable) {
-        return productRepository.findByIsDeletedFalse(pageable); // Chỉ lấy sản phẩm chưa bị ẩn
-    }
-
-    @Override
     public Page<Product> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable);
     }
 
     @Transactional
     @Override
-    public void deletePermanently(Integer productId) {
+    public void deleteProduct(Integer productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
-
-        product.setIsDeleted(true);
-        productRepository.save(product);
+        for (Auction auction : product.getAuctions()) {
+            transactionRepository.deleteByAuction(auction);
+        }
+        for (Auction auction : product.getAuctions()) {
+            notificationRepository.deleteByAuction(auction);
+        }
+        imageRepository.deleteByProduct(product);
+        auctionRepository.deleteByProduct(product);
+        productRepository.delete(product);
     }
 
 

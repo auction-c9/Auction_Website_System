@@ -58,6 +58,10 @@ public class Product {
     @JoinColumn(name = "account_id", columnDefinition = "INT")
     private Account account;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Auction> auctions = new ArrayList<>();
+
     // Nếu ProductService đang gọi getIsDeleted() thì đảm bảo có getter này:
     public Boolean getIsDeleted() {
         return isDeleted;
