@@ -11,7 +11,6 @@ import com.example.auction_management.model.Product;
 import com.example.auction_management.service.ICustomerService;
 import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.impl.AuctionService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -38,12 +37,13 @@ import java.util.Optional;
 public class AuctionController {
 
     private final AuctionService auctionService;
-    private final AuctionRepository auctionRepository;
     private final ICustomerService customerService;
-    public AuctionController(AuctionService auctionService, AuctionRepository auctionRepository, ICustomerService customerService) {
+    private final AuctionRepository auctionRepository;
+
+    public AuctionController(AuctionService auctionService, ICustomerService customerService , AuctionRepository auctionRepository) {
         this.auctionService = auctionService;
-        this.auctionRepository = auctionRepository;
         this.customerService = customerService;
+        this.auctionRepository = auctionRepository;
     }
 
 
