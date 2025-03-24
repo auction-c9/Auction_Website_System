@@ -19,9 +19,13 @@ public class Notification {
     @Column(name = "notification_id", columnDefinition = "INT")
     private Integer notification_id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "auction_id", nullable = false)
+    private Auction auction;
 
     private String message;
 
@@ -32,4 +36,6 @@ public class Notification {
         this.message = message;
         this.isRead = isRead;
     }
+
+
 }

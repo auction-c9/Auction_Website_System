@@ -31,7 +31,7 @@ public class NotificationService {
      * Gửi thông báo cho userId với nội dung message.
      * Thêm log để theo dõi quá trình tìm customer, lưu notification và gửi WebSocket.
      */
-    public void sendNotification(Integer userId, String message) {
+    public void sendNotification(Integer userId, String message, Auction auction) {
         logger.info("sendNotification() - userId: {}, message: {}", userId, message);
         Customer customer = customerRepository.findById(userId)
                 .orElseThrow(() -> {
@@ -46,6 +46,7 @@ public class NotificationService {
         notification.setCustomer(customer);
         notification.setMessage(message);
         notification.setTimestamp(LocalDateTime.now());
+        notification.setAuction(auction); // Gán Auction vào notification
 
         // Lưu notification vào DB
         notificationRepository.save(notification);
@@ -67,8 +68,7 @@ public class NotificationService {
      * Gửi thông báo đặt giá (bid) cho tất cả người tham gia và người bán.
      */
     public void sendBidNotification(Integer auctionId, Integer bidderId, String message) {
-        logger.info("sendBidNotification() - auctionId: {}, bidderId: {}, message: {}",
-                auctionId, bidderId, message);
+        logger.info("sendBidNotification() - auctionId: {}, bidderId: {}, message: {}", auctionId, bidderId, message);
 
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> {
@@ -76,6 +76,9 @@ public class NotificationService {
                     return new RuntimeException("Auction not found");
                 });
         logger.debug("Found auction with ID: {}", auctionId);
+
+        String productName = auction.getProduct().getName(); // Lấy tên sản phẩm
+        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s", auctionId, productName);
 
         Customer bidder = customerRepository.findById(bidderId)
                 .orElseThrow(() -> {
@@ -93,22 +96,24 @@ public class NotificationService {
         List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auctionId);
         logger.debug("Found {} participants for auction ID {}", participants.size(), auctionId);
 
+        // Tạo thông báo chi tiết
+        String bidMessage = String.format("%s - %s", auctionInfo, message);
+
         // Gửi thông báo cho tất cả người tham gia (trừ bidder)
         for (Customer customer : participants) {
-            logger.debug("Participant ID: {}, username: {}",
-                    customer.getCustomerId(), customer.getAccount().getUsername());
             if (!customer.getCustomerId().equals(bidderId)) {
-                sendNotification(customer.getCustomerId(), message);
+                sendNotification(seller.getCustomerId(), bidMessage, auction);
+
             }
         }
 
         // Gửi thông báo cho người bán (nếu seller không phải bidder)
         if (!seller.getCustomerId().equals(bidderId)) {
-            String sellerMessage = "Có người đặt giá đấu giá thành công cho sản phẩm của bạn!";
-            logger.debug("Sending seller notification: {}", sellerMessage);
-            sendNotification(seller.getCustomerId(), sellerMessage);
+            String sellerMessage = String.format("%s - Có người vừa đặt giá thành công cho sản phẩm của bạn!", auctionInfo);
+            sendNotification(seller.getCustomerId(), sellerMessage, auction);
         }
     }
+
 
     /**
      * Lấy người bán của một phiên đấu giá theo cách giống BidService.
@@ -122,8 +127,14 @@ public class NotificationService {
      */
     public List<Notification> getNotificationsByCustomerId(Integer customerId) {
         logger.info("getNotificationsByCustomerId() - customerId: {}", customerId);
-        List<Notification> notifications = notificationRepository.findByCustomer_CustomerIdOrderByTimestampDesc(customerId);
+        List<Notification> notifications = notificationRepository.findByCustomerCustomerIdOrderByTimestampDesc(customerId);
         logger.debug("Found {} notifications for customerId {}", notifications.size(), customerId);
         return notifications;
+    }
+
+    public void markAsRead(Integer customerId, Integer auctionId) {
+        List<Notification> notifications = notificationRepository.findByCustomer_CustomerIdAndAuction_AuctionId(customerId, auctionId);
+        notifications.forEach(notification -> notification.setIsRead(true));
+        notificationRepository.saveAll(notifications);
     }
 }

@@ -140,7 +140,7 @@ public class BidService implements IBidService {
 
         System.out.println("Owner Account ID: " + seller);
         System.out.println("Sending notification to seller: " + seller);
-        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!");
+        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!", auction);
 
         // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
         // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
@@ -148,7 +148,7 @@ public class BidService implements IBidService {
         for (Customer participant : participants) {
             if (!participant.getCustomerId().equals(customer.getCustomerId())) {
                 System.out.println("Sending notification to participant: " + participant.getCustomerId());
-                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!");
+                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!", auction);
             }
         }
 
