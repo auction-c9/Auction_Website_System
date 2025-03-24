@@ -65,4 +65,5 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     List<Object[]> countAuctionsByMonth();
     void deleteByProduct(Product product);
 
+//    Optional<Auction> findById(Integer id);
 }

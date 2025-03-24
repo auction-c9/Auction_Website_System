@@ -1,6 +1,8 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Notification;
+import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    private AuctionRepository auctionRepository;
     // Inject SimpMessagingTemplate để gửi tin nhắn qua WebSocket
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -45,6 +48,13 @@ public class NotificationController {
             @PathVariable Integer customerId,
             @PathVariable Integer auctionId) {
         notificationService.markAsRead(customerId, auctionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/send")
+    public ResponseEntity<Void> sendNotification(@RequestParam Integer customerId, @RequestParam String message, @RequestParam Integer auctionId) {
+        Auction auction = auctionRepository.findById(auctionId).orElseThrow();
+        notificationService.sendNotification(customerId, message, auction);
         return ResponseEntity.ok().build();
     }
 }

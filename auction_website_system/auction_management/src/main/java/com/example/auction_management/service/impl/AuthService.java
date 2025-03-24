@@ -366,7 +366,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public CustomerDTO getCustomerProfile(String username) {
-        Customer customer = customerRepository.findByAccountUsername(username)
+        Customer customer = customerRepository.findByAccount_Username(username)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người dùng"));
 
         return mapToDTO(customer);

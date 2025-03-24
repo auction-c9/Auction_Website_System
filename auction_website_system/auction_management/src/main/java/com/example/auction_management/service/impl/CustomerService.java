@@ -1,13 +1,16 @@
 package com.example.auction_management.service.impl;
 
+import com.example.auction_management.exception.NotFoundException;
 import com.example.auction_management.model.Customer;
 import com.example.auction_management.repository.CustomerRepository;
 import com.example.auction_management.repository.ImageRepository;
 import com.example.auction_management.service.ICustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -47,4 +50,18 @@ public class CustomerService implements ICustomerService {
     public void deleteById(Integer integer) {
 
     }
+
+    @Override
+    public Customer getCurrentCustomer(Authentication authentication) {
+        String username = authentication.getName();
+        return customerRepository.findByAccount_Username(username)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
+    }
+
+    @Override
+    public Customer getCustomerById(Integer id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
+    }
+
 }

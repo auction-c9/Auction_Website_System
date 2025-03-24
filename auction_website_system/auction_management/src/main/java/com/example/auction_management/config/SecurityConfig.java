@@ -68,11 +68,6 @@ public class SecurityConfig {
         return new ProviderManager(authProvider);
     }
 
-//    @Bean
-//    public ReviewSecurity reviewSecurity() {
-//        return new ReviewSecurity();
-//    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -103,7 +98,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/auctions", "/api/auctions/{id}", "/api/auctions/status/{status}",
                                 "/api/auctions/ongoing", "/api/auctions/product/{productId}", "/api/bids/auction/{id}"
                         ).permitAll()
-                        .requestMatchers("/api/reviews").authenticated()
+                        .requestMatchers("/api/reviews","/api/follows/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**","/api/auctions/profile/*").authenticated()

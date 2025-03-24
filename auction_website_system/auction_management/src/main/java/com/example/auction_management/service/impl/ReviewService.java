@@ -32,7 +32,7 @@ public class ReviewService implements IReviewService {
         try {
             log.info("Creating review for bidId: {}", dto.getBidId());
             // Lấy thông tin người mualsdfdsfe4oi898909
-            Customer buyer = customerRepository.findByAccountUsername(username)
+            Customer buyer = customerRepository.findByAccount_Username(username)
                     .orElseThrow(() -> new RuntimeException("Customer not found"));
             log.info("Buyer found: {}", buyer.getCustomerId());
             // Kiểm tra bid hợp lệ

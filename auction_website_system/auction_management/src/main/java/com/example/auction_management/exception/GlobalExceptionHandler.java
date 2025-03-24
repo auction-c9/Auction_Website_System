@@ -191,4 +191,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleDuplicateReview(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<?> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "error", "Resource not found",
+                        "message", ex.getMessage()
+                ));
+    }
 }
