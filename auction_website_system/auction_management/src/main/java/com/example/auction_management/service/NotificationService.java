@@ -80,6 +80,9 @@ public class NotificationService {
                 });
         logger.debug("Found auction with ID: {}", auctionId);
 
+        String productName = auction.getProduct().getName();
+        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s", auctionId, productName);
+
         Customer bidder = customerRepository.findById(bidderId)
                 .orElseThrow(() -> {
                     logger.error("Bidder with ID {} not found!", bidderId);
