@@ -104,6 +104,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**","/api/auctions/profile/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auctions/cancel/**" ).authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
+                        .requestMatchers("/api/bids/deposit/check").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/auth/profile").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers("/api/bids/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                         .requestMatchers("/api/admin/**", "/api/accounts/warning/**").hasAuthority("ROLE_ADMIN")

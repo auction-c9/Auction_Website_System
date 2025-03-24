@@ -40,4 +40,11 @@ public class NotificationController {
         messagingTemplate.convertAndSend("/topic/notifications", notificationObject);
         return ResponseEntity.ok("Notification sent");
     }
+    @PutMapping("/read/{customerId}/{auctionId}")
+    public ResponseEntity<Void> markNotificationsAsRead(
+            @PathVariable Integer customerId,
+            @PathVariable Integer auctionId) {
+        notificationService.markAsRead(customerId, auctionId);
+        return ResponseEntity.ok().build();
+    }
 }
