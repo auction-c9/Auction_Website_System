@@ -258,7 +258,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 100000)
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái các phiên đấu giá dựa trên thời gian hiện tại
@@ -281,45 +281,6 @@ public class BidService implements IBidService {
         }
     }
 
-
-    private void sendWinnerEmail(String recipientEmail, Auction auction) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(recipientEmail);
-        message.setSubject("Thông báo kết thúc phiên đấu giá");
-        message.setText("Chúc mừng! Bạn đã chiến thắng phiên đấu giá số " + auction.getAuctionId() +
-                ". Vui lòng thanh toán trong vòng 3 ngày, nếu không bạn sẽ mất tiền đặt cọc.");
-        mailSender.send(message);
-    }
-
-    private void sendOwnerNotificationEmail(Auction auction, Customer seller, Customer winner) {
-        String recipientEmail = seller.getEmail();
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(recipientEmail);
-        message.setSubject("Thông báo kết thúc phiên đấu giá");
-        message.setText("Phiên đấu giá số " + auction.getAuctionId() + " của bạn đã kết thúc. " +
-                "Người chiến thắng là: " + winner.getAccount().getUsername() +
-                ". Vui lòng liên hệ với người chiến thắng và hoàn tất giao dịch trong vòng 3 ngày.");
-        mailSender.send(message);
-    }
-    private void sendLoserEmails(Auction auction, Customer winner) {
-        List<Bid> allBids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auction.getAuctionId());
-
-        for (Bid bid : allBids) {
-            Customer bidder = bid.getCustomer();
-            if (!bidder.getCustomerId().equals(winner.getCustomerId())) {
-                sendLoserEmail(bidder.getEmail(), auction);
-            }
-        }
-    }
-
-    private void sendLoserEmail(String recipientEmail, Auction auction) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(recipientEmail);
-        message.setSubject("Thông báo kết thúc phiên đấu giá");
-        message.setText("Rất tiếc! Bạn đã không chiến thắng phiên đấu giá số " + auction.getAuctionId() +
-                ". Tiền đặt cọc sẽ được hoàn trả vào tài khoản của bạn trong 3 ngày làm việc tiếp theo.");
-        mailSender.send(message);
-    }
     public byte[] exportFailedBidsToExcel() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime yesterday = now.minusDays(1);

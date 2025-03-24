@@ -11,7 +11,6 @@ import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IAuctionService;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,7 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuctionService implements IAuctionService {
@@ -45,12 +45,48 @@ public class AuctionService implements IAuctionService {
 
     @Override
     public List<Auction> findAll() {
-        return auctionRepository.findAllByIsDeletedFalse();
+        List<Auction> auctions = auctionRepository.findAllByIsDeletedFalse();
+        // Log thông tin các auction và sản phẩm, bao gồm cả danh sách images
+        auctions.forEach(auction -> {
+            Product product = auction.getProduct();
+            if (product != null) {
+                log.info("Auction ID {}: Product ID {} - Name: {}",
+                        auction.getAuctionId(), product.getProductId(), product.getName());
+                if (product.getImages() != null) {
+                    log.info("Product ID {} có {} ảnh.",
+                            product.getProductId(), product.getImages().size());
+                    product.getImages().forEach(image ->
+                            log.info("   Image ID: {}, URL: {}", image.getId(), image.getImageUrl())
+                    );
+                } else {
+                    log.info("Product ID {}: images là null.", product.getProductId());
+                }
+            } else {
+                log.info("Auction ID {} không có product.", auction.getAuctionId());
+            }
+        });
+        return auctions;
     }
 
     @Override
-    public Optional<Auction> findById(Integer integer) {
-        return auctionRepository.findByAuctionIdAndIsDeletedFalse(integer);
+    public Optional<Auction> findById(Integer auctionId) {
+        Optional<Auction> auctionOpt = auctionRepository.findByAuctionIdAndIsDeletedFalse(auctionId);
+        auctionOpt.ifPresent(auction -> {
+            Product product = auction.getProduct();
+            if (product != null) {
+                log.info("findById: Auction ID {} - Product ID {} - Name: {}",
+                        auction.getAuctionId(), product.getProductId(), product.getName());
+                if (product.getImages() != null) {
+                    log.info("Product ID {} có {} ảnh.",
+                            product.getProductId(), product.getImages().size());
+                } else {
+                    log.info("Product ID {}: images là null.", product.getProductId());
+                }
+            } else {
+                log.info("findById: Auction ID {} không có product.", auction.getAuctionId());
+            }
+        });
+        return auctionOpt;
     }
 
     @Override
@@ -150,22 +186,33 @@ public class AuctionService implements IAuctionService {
                 .orElseThrow(() -> new AuctionNotFoundException("Không tìm thấy phiên đấu giá với ID: " + auctionId));
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+
+        // Log thông tin về chủ sở hữu của product
+        Product product = auction.getProduct();
+        if (product != null) {
+            log.info("Kiểm tra quyền: Auction ID {} thuộc về Product ID {} có chủ sở hữu Account ID {}",
+                    auction.getAuctionId(), product.getProductId(), product.getAccount().getAccountId());
+            if (product.getImages() != null) {
+                log.info("Product ID {} có {} ảnh.", product.getProductId(), product.getImages().size());
+            } else {
+                log.info("Product ID {}: images là null.", product.getProductId());
+            }
+        } else {
+            log.warn("Auction ID {} không có product.", auction.getAuctionId());
+        }
 
         if (!auction.getProduct().getAccount().getAccountId().equals(account.getAccountId())) {
             throw new UnauthorizedActionException("Bạn không có quyền xóa auction này");
         }
         return auction;
-
     }
 
     @Transactional
     public void updateAuctionStatuses() {
         auctionRepository.updateAuctionStatuses(LocalDateTime.now());
     }
-
     public List<Auction> findAllWithUpdatedStatus() {
         List<Auction> auctions = auctionRepository.findAll();
         LocalDateTime now = LocalDateTime.now();

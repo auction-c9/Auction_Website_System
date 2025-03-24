@@ -43,10 +43,7 @@ public class Product {
     @Column(name = "base_price", columnDefinition = "DECIMAL(10,2) NOT NULL")
     private BigDecimal basePrice;
 
-    @Column(name = "image", columnDefinition = "LONGTEXT")
-    private String image;
-
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference
     private List<Image> images = new ArrayList<>();
 
