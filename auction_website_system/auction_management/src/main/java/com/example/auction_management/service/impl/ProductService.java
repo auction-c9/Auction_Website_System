@@ -90,7 +90,6 @@ public class ProductService implements IProductService {
 
     private static final Pattern DIACRITIC_PATTERN = Pattern.compile("\\p{M}");
 
-    @Transactional
     @Override
     public Product createProduct(ProductDTO dto) {
         Account account = getAuthenticatedAccount();
@@ -118,7 +117,6 @@ public class ProductService implements IProductService {
             registration.setAuction(auction);
             registration.setCustomer(customer);
             auctionRegistrationRepository.save(registration);
-            notificationService.notifyNewProduct(product);
             return product;
         } catch (IOException e) {
             logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);
