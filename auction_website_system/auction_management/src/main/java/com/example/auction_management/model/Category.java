@@ -20,8 +20,5 @@ public class Category {
     @NotBlank(message = "Tên danh mục không được để trống")
     @Column(name = "name", columnDefinition = "VARCHAR(255) NOT NULL UNIQUE")
     private String name;
-
-    @Column(name = "is_deleted", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean isDeleted;
 }
 

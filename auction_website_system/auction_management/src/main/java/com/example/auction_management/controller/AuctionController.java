@@ -8,6 +8,7 @@ import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
+import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.impl.AuctionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
 
@@ -29,11 +32,11 @@ import java.util.Optional;
 public class AuctionController {
 
     private final AuctionService auctionService;
-    private final AuctionMapper auctionMapper;
+    private final AuctionRepository auctionRepository;
 
-    public AuctionController(AuctionService auctionService, AuctionMapper auctionMapper) {
+    public AuctionController(AuctionService auctionService, AuctionRepository auctionRepository) {
         this.auctionService = auctionService;
-        this.auctionMapper = auctionMapper;
+        this.auctionRepository = auctionRepository;
     }
 
 
@@ -128,5 +131,13 @@ public class AuctionController {
     public ResponseEntity<ProfileResponseDTO> getUserProfile(@PathVariable Integer accountID) {
         ProfileResponseDTO profile = auctionService.getUserProfile(accountID);
         return ResponseEntity.ok(profile);
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<Auction>> searchAuctions(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) List<Integer> categoryIds,
+            @RequestParam(required = false) BigDecimal minStartingPrice) {
+        List<Auction> results = auctionRepository.searchAuctions(query, categoryIds, minStartingPrice);
+        return ResponseEntity.ok(results);
     }
 }

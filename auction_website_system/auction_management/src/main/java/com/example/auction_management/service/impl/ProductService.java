@@ -260,7 +260,7 @@ public class ProductService implements IProductService {
                 .orElseThrow(() -> new ProductCreationException("Không tìm thấy danh mục: " + categoryId));
     }
 
-    private Product buildProduct(ProductDTO dto, Account account, Category category) throws IOException {
+    private Product buildProduct(ProductDTO dto, Account account, Category category) {
         return Product.builder()
                 .name(dto.getName())
                 .category(category)
@@ -268,7 +268,7 @@ public class ProductService implements IProductService {
                 .basePrice(dto.getBasePrice())
                 .isDeleted(false)
                 .account(account)
-                .image(uploadFile(dto.getImageFile()))
+                // Không gán ảnh đại diện ở đây, vì việc upload ảnh sẽ được thực hiện qua imageFiles
                 .images(new ArrayList<>())
                 .build();
     }
@@ -329,9 +329,10 @@ public class ProductService implements IProductService {
         product.setDescription(dto.getDescription());
         product.setBasePrice(dto.getBasePrice());
         product.setCategory(getCategory(dto.getCategoryId()));
-        if (dto.getImageFile() != null && !dto.getImageFile().isEmpty()) {
-            product.setImage(uploadFile(dto.getImageFile()));
-        }
+        // Nếu muốn cập nhật ảnh sản phẩm thì có thể xoá ảnh cũ và upload danh sách ảnh mới
+        // Ví dụ:
+        // product.getImages().clear();
+        // uploadDetailImages(dto.getImageFiles(), product);
         uploadDetailImages(dto.getImageFiles(), product);
     }
 }

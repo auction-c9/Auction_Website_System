@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +65,18 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
             "ORDER BY MONTH(a.auctionStartTime)")
     List<Object[]> countAuctionsByMonth();
     void deleteByProduct(Product product);
+
+    @Query("SELECT a FROM Auction a JOIN a.product p " +
+            "WHERE (:query IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND (:categoryIds IS NULL OR p.category.categoryId IN :categoryIds) " +
+            "AND (:minStartingPrice IS NULL OR a.currentPrice >= :minStartingPrice)")
+    List<Auction> searchAuctions(@Param("query") String query,
+                                 @Param("categoryIds") List<Integer> categoryIds,
+                                 @Param("minStartingPrice") BigDecimal minStartingPrice);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.images WHERE p.productId = :id")
+    Optional<Product> findByIdWithImages(@Param("id") Integer id);
+
 
 //    Optional<Auction> findById(Integer id);
 }
