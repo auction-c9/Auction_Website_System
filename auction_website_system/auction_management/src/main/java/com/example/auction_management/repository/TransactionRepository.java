@@ -1,6 +1,7 @@
 package com.example.auction_management.repository;
 
 
+import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,5 +27,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
             ")")
     List<Transaction> findFailedDeposits(@Param("yesterday") LocalDateTime yesterday,
                                          @Param("now") LocalDateTime now);
+
+    @Query(value = "SELECT DATE(created_at) AS transactionDate, SUM(amount) AS totalAmount " +
+            "FROM transactions " +
+            "WHERE created_at >= CURDATE() - INTERVAL :days DAY " +
+            "AND status = 'SUCCESS' " +
+            "GROUP BY DATE(created_at) " +
+            "ORDER BY DATE(created_at) ASC",
+            nativeQuery = true)
+    List<Object[]> sumTransactionsByDay(@Param("days") int days);
+    void deleteByAuction(Auction auction);
 
 }

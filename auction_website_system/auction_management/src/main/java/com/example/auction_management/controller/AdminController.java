@@ -1,5 +1,6 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.dto.TransactionDTO;
 import com.example.auction_management.model.Account;
 import com.example.auction_management.model.Customer;
 import com.example.auction_management.model.Product;
@@ -38,6 +39,9 @@ public class AdminController {
     @Autowired
     private IAuctionService auctionService;
 
+    @Autowired
+    private ITransactionService transactionService;
+
     @GetMapping("/profile")
     public ResponseEntity<Account> getAdminProfile(Principal principal) {
         String username = principal.getName();
@@ -60,14 +64,6 @@ public class AdminController {
 
     }
 
-    @GetMapping("/products")
-    public ResponseEntity<Page<Product>> getAllProducts(@RequestParam(defaultValue = "0") int page,
-                                                        @RequestParam(defaultValue = "5") int size){
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Product> products = productService.getProducts(pageable);
-        return new ResponseEntity<>(products, HttpStatus.OK);
-    }
-
     @GetMapping("/products/{productId}")
     public ResponseEntity<Product> getProductById(@PathVariable Integer productId) {
         Product product = productService.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
@@ -76,10 +72,9 @@ public class AdminController {
 
     @DeleteMapping("/products/{productId}")
     public ResponseEntity<?> deleteProduct(@PathVariable Integer productId) {
-        productService.deletePermanently(productId);
-        return ResponseEntity.ok("Sản phẩm đã bị xóa!");
+        productService.deleteProduct(productId);
+        return ResponseEntity.ok("Sản phẩm và đấu giá liên quan đã được xóa thành công!");
     }
-
 
     @GetMapping("/products/all")
     public ResponseEntity<Page<Product>> getAllProductsForAdmin(
@@ -92,17 +87,6 @@ public class AdminController {
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
-    @PutMapping("/products/{productId}/restore")
-    public ResponseEntity<String> restoreProduct(@PathVariable Integer productId) {
-        Product product = productService.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại!"));
-
-        product.setIsDeleted(false); // Bật lại sản phẩm
-        productService.save(product); // Lưu vào database
-
-        return ResponseEntity.ok("Sản phẩm đã được khôi phục!");
-    }
-
     @GetMapping("/user-statistics")
     public ResponseEntity<List<Map<String, Object>>> getNewUsers(@RequestParam(defaultValue = "7") int days) {
         return ResponseEntity.ok(accountService.getNewUsersByDay(days));
@@ -113,6 +97,22 @@ public class AdminController {
         Map<Integer, Long> auctionStats = auctionService.countAuctionsByMonth();
         return ResponseEntity.ok(auctionStats);
     }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<Page<TransactionDTO>> getAllTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) { // Thêm phân trang
+        Pageable pageable = PageRequest.of(page, size);
+        Page<TransactionDTO> transactions = transactionService.getAllTransactions(pageable);
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/transaction-statistics")
+    public ResponseEntity<List<Map<String, Object>>> getTransactionStatistics(
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(transactionService.getTotalTransactionsByDay(days));
+    }
+
 
 
 }
