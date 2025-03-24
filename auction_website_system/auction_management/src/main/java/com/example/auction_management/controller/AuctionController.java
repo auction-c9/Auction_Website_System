@@ -10,6 +10,7 @@ import com.example.auction_management.model.Product;
 import com.example.auction_management.service.ICustomerService;
 import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.ICustomerService;
+import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.impl.AuctionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

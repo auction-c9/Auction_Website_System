@@ -258,7 +258,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 100000)
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái các phiên đấu giá dựa trên thời gian hiện tại
