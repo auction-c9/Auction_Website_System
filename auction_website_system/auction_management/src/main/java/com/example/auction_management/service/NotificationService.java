@@ -8,8 +8,11 @@ import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.repository.BidRepository;
 import com.example.auction_management.repository.CustomerRepository;
 import com.example.auction_management.repository.NotificationRepository;
+import com.example.auction_management.model.*;
+import com.example.auction_management.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +35,7 @@ public class NotificationService {
     private final BidRepository bidRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService; // Inject EmailService
-
+    private final FollowRepository followRepository;
     /**
      * Gửi thông báo cho userId với nội dung message.
      */
@@ -75,9 +78,6 @@ public class NotificationService {
                     return new RuntimeException("Auction not found");
                 });
         logger.debug("Found auction with ID: {}", auctionId);
-
-        String productName = auction.getProduct().getName();
-        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s", auctionId, productName);
 
         Customer bidder = customerRepository.findById(bidderId)
                 .orElseThrow(() -> {

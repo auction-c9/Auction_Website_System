@@ -68,11 +68,6 @@ public class SecurityConfig {
         return new ProviderManager(authProvider);
     }
 
-//    @Bean
-//    public ReviewSecurity reviewSecurity() {
-//        return new ReviewSecurity();
-//    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
