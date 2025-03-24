@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -39,6 +40,7 @@ public class BidService implements IBidService {
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
+    private final ReviewRepository reviewRepository;
     @Autowired
     private JavaMailSender mailSender;
 
@@ -67,9 +69,15 @@ public class BidService implements IBidService {
     }
 
     public List<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId) {
-        List<Bid> bids = bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId);
-        return bids.stream()
-                .map(this::mapToBidResponseDTOByCustomer)
+        Set<Integer> reviewedBidIds = reviewRepository.findReviewedBidIdsByCustomerId(customerId);
+
+        return bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId)
+                .stream()
+                .map(bid -> {
+                    BidResponseDTO dto = mapToBidResponseDTOByCustomer(bid);
+                    dto.setHasReviewed(reviewedBidIds.contains(bid.getBidId()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -132,7 +140,7 @@ public class BidService implements IBidService {
 
         System.out.println("Owner Account ID: " + seller);
         System.out.println("Sending notification to seller: " + seller);
-        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!");
+        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!", auction);
 
         // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
         // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
@@ -140,7 +148,7 @@ public class BidService implements IBidService {
         for (Customer participant : participants) {
             if (!participant.getCustomerId().equals(customer.getCustomerId())) {
                 System.out.println("Sending notification to participant: " + participant.getCustomerId());
-                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!");
+                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!", auction);
             }
         }
 

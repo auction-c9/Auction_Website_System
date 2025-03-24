@@ -3,6 +3,7 @@ package com.example.auction_management.exception;
 import com.example.auction_management.dto.ErrorResponse;
 import com.example.auction_management.service.impl.BidService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -179,5 +180,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleFileUploadError(FileUploadException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<String> handleDatabaseError(DataAccessException ex) {
+        return ResponseEntity.status(500).body("Lỗi database: " + ex.getRootCause().getMessage());
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleDuplicateReview(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 }
