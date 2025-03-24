@@ -97,7 +97,7 @@ public class TransactionService implements ITransactionService {
             transaction.setCustomer(customer);
             transaction.setAuction(auction);
             transaction.setAmount(dto.getAmount());
-            transaction.setTransactionType(dto.getTransactionType());
+            transaction.setTransactionType(dto.getTransactionType() != null ? dto.getTransactionType() : "DEPOSIT");
             transaction.setPaymentMethod(dto.getPaymentMethod());
             transaction.setStatus("PENDING");
             transaction.setTransactionId(generatedTxnId);

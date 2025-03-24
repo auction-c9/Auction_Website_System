@@ -44,9 +44,43 @@ public class AccountService implements IAccountService {
             throw new RuntimeException("Không tìm thấy email của tài khoản");
         }
 
-        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung",
-                "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.");
+        String emailContent = generateWarningEmailContent(customer.getName());
+
+//        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung", emailContent, true);
     }
+
+    private String generateWarningEmailContent(String customerName) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" + // Tăng font-size
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" + // Tăng font-size lên 18px
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" + // Tăng font-size chân trang lên 16px
+                "        .footer strong { color: #333; font-size: 17px; }" +
+                "        .footer a { color: #007BFF; text-decoration: none; font-size: 16px; }" +
+                "        .footer a:hover { text-decoration: underline; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + customerName + "!</strong></p>" + // Tăng kích thước tiêu đề
+                "    <p>Bạn đã vi phạm quy định về nội dung sản phẩm trên hệ thống.</p>" +
+                "    <p>Vui lòng chỉnh sửa bài đăng để tránh bị khóa tài khoản.</p>" +
+                "    <p>Nếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi để được hỗ trợ.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
 
     @Override
     public Optional<Account> findAccountByUsername(String username) {
@@ -55,8 +89,59 @@ public class AccountService implements IAccountService {
 
     @Override
     public boolean lockAccount(Integer accountId) {
-        return updateAccountLockStatus(accountId, true);
+        boolean locked = updateAccountLockStatus(accountId, true);
+        if (locked) {
+            sendLockNotificationEmail(accountId);
+        }
+        return locked;
     }
+
+    private void sendLockNotificationEmail(Integer accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+        Customer customer = account.getCustomer();
+        if (customer == null || customer.getEmail() == null) {
+            throw new RuntimeException("Không tìm thấy email của tài khoản");
+        }
+
+        String emailContent = generateLockEmailContent(customer.getName());
+
+//        emailService.sendEmail(customer.getEmail(), "Thông báo khóa tài khoản", emailContent, true);
+    }
+
+    private String generateLockEmailContent(String customerName) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" +
+                "        .footer strong { color: #333; font-size: 17px; }" +
+                "        .footer a { color: #007BFF; text-decoration: none; font-size: 16px; }" +
+                "        .footer a:hover { text-decoration: underline; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + customerName + "!</strong></p>" +
+                "    <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị <strong>tạm khóa</strong> do vi phạm chính sách của hệ thống.</p>" +
+                "    <p>Vui lòng liên hệ với bộ phận hỗ trợ để biết thêm chi tiết hoặc yêu cầu mở khóa tài khoản.</p>" +
+                "    <p>Chúng tôi xin lỗi vì sự bất tiện này.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
 
     @Override
     public boolean unlockAccount(Integer accountId) {

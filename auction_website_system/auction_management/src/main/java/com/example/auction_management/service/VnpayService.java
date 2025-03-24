@@ -117,6 +117,10 @@ public class VnpayService {
             Transaction transaction = transactionRepository.findByVnpTxnRef(vnp_TxnRef);
             if (transaction != null) {
                 transaction.setStatus("SUCCESS");
+                // Nếu thanh toán thành công và transactionType đang là "DEPOSIT", thì đổi thành "FINAL"
+                if ("DEPOSIT".equals(transaction.getTransactionType())) {
+                    transaction.setTransactionType("FINAL");
+                }
                 transactionRepository.save(transaction);
                 return ResponseEntity.ok("Thanh toán thành công!");
             } else {

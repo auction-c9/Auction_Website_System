@@ -155,6 +155,10 @@ public class PaypalService {
         if (transactionOpt.isPresent()) {
             Transaction transaction = transactionOpt.get();
             transaction.setStatus(finalStatus);
+            // Nếu thanh toán thành công và transactionType đang là "DEPOSIT", thì đổi thành "FINAL"
+            if ("SUCCESS".equalsIgnoreCase(finalStatus) && "DEPOSIT".equals(transaction.getTransactionType())) {
+                transaction.setTransactionType("FINAL");
+            }
             transactionRepository.save(transaction);
         }
         return finalStatus;
