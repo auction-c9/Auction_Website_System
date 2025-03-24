@@ -46,7 +46,7 @@ public class AccountService implements IAccountService {
 
         String emailContent = generateWarningEmailContent(customer.getName());
 
-        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung", emailContent, true);
+//        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung", emailContent, true);
     }
 
     private String generateWarningEmailContent(String customerName) {
@@ -107,7 +107,7 @@ public class AccountService implements IAccountService {
 
         String emailContent = generateLockEmailContent(customer.getName());
 
-        emailService.sendEmail(customer.getEmail(), "Thông báo khóa tài khoản", emailContent, true);
+//        emailService.sendEmail(customer.getEmail(), "Thông báo khóa tài khoản", emailContent, true);
     }
 
     private String generateLockEmailContent(String customerName) {

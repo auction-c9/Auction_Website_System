@@ -161,10 +161,10 @@ public class ProductService implements IProductService {
             account.setStatus(Account.AccountStatus.inactive);
 
             emailService.sendEmail(email, "Thông báo khóa tài khoản",
-                    "Tài khoản của bạn đã bị khóa do vi phạm nội dung quá nhiều lần.", true);
+                    "Tài khoản của bạn đã bị khóa do vi phạm nội dung quá nhiều lần.");
         } else {
             emailService.sendEmail(email, "Cảnh báo vi phạm nội dung",
-                    "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.", true);
+                    "Bạn đã vi phạm nội dung sản phẩm. Vui lòng chỉnh sửa để tránh bị khóa tài khoản.");
         }
     }
 
