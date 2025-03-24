@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,8 +44,9 @@ public class AccountService implements IAccountService {
         }
 
         String emailContent = generateWarningEmailContent(customer.getName());
+        String subject = "Cảnh báo vi phạm nội dung";
 
-//        emailService.sendEmail(customer.getEmail(), "Cảnh báo vi phạm nội dung", emailContent, true);
+        emailService.sendEmail(customer.getEmail(), subject, emailContent);
     }
 
     private String generateWarningEmailContent(String customerName) {
@@ -55,9 +55,9 @@ public class AccountService implements IAccountService {
                 "<head>" +
                 "    <meta charset='UTF-8'>" +
                 "    <style>" +
-                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" + // Tăng font-size
-                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" + // Tăng font-size lên 18px
-                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" + // Tăng font-size chân trang lên 16px
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" +
                 "        .footer strong { color: #333; font-size: 17px; }" +
                 "        .footer a { color: #007BFF; text-decoration: none; font-size: 16px; }" +
                 "        .footer a:hover { text-decoration: underline; }" +
@@ -65,9 +65,8 @@ public class AccountService implements IAccountService {
                 "</head>" +
                 "<body>" +
                 "<div class='content'>" +
-                "    <p style='font-size: 20px;'><strong>Xin chào, " + customerName + "!</strong></p>" + // Tăng kích thước tiêu đề
-                "    <p>Bạn đã vi phạm quy định về nội dung sản phẩm trên hệ thống.</p>" +
-                "    <p>Vui lòng chỉnh sửa bài đăng để tránh bị khóa tài khoản.</p>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + customerName + "!</strong></p>" +
+                "    <p>Bạn đã vi phạm quy định về điều khoản trên hệ thống.</p>" +
                 "    <p>Nếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi để được hỗ trợ.</p>" +
                 "</div>" +
                 "<div class='footer'>" +
@@ -80,7 +79,6 @@ public class AccountService implements IAccountService {
                 "</body>" +
                 "</html>";
     }
-
 
     @Override
     public Optional<Account> findAccountByUsername(String username) {
@@ -106,8 +104,9 @@ public class AccountService implements IAccountService {
         }
 
         String emailContent = generateLockEmailContent(customer.getName());
+        String subject = "Thông báo khóa tài khoản";
 
-//        emailService.sendEmail(customer.getEmail(), "Thông báo khóa tài khoản", emailContent, true);
+        emailService.sendEmail(customer.getEmail(), subject, emailContent);
     }
 
     private String generateLockEmailContent(String customerName) {
@@ -142,7 +141,6 @@ public class AccountService implements IAccountService {
                 "</html>";
     }
 
-
     @Override
     public boolean unlockAccount(Integer accountId) {
         return updateAccountLockStatus(accountId, false);
@@ -160,9 +158,10 @@ public class AccountService implements IAccountService {
         }
         return false;
     }
+
     @Override
     public List<Map<String, Object>> getNewUsersByDay(int days) {
-        LocalDateTime startDateTime = LocalDate.now().minusDays(days - 1).atStartOfDay(); // Chuyển thành 00:00:00
+        LocalDateTime startDateTime = LocalDate.now().minusDays(days - 1).atStartOfDay();
 
         List<Object[]> results = accountRepository.countNewUsersPerDay(startDateTime);
 

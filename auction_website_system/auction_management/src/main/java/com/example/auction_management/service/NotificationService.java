@@ -170,42 +170,133 @@ public class NotificationService {
         Bid winningBid = winningBidOptional.get();
         Customer winner = winningBid.getCustomer();
 
-        // 3. Lấy danh sách tất cả người tham gia (không trùng lặp)
+        // 3. Lấy danh sách tất cả người tham gia
         List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auctionId);
         logger.debug("Found {} participants for auction ID {}", participants.size(), auctionId);
 
-        // 4. Tính số tiền cần thanh toán cho người thắng (tiền cọc = 10% currentPrice)
+        // 4. Tính số tiền cần thanh toán
         BigDecimal depositAmount = auction.getCurrentPrice().multiply(BigDecimal.valueOf(0.1));
         BigDecimal amountToPay = winningBid.getBidAmount().subtract(depositAmount);
 
-        // 5. Soạn nội dung thông báo và email cho từng đối tượng
-
+        // 5. Gửi thông báo và email
         // Người bán
         String sellerMessage = auctionInfo + " - Phiên đấu giá của sản phẩm của bạn đã kết thúc.";
-        String sellerEmailText = "Kính chào,\n\nPhiên đấu giá của sản phẩm \"" + productName + "\" đã kết thúc. Vui lòng kiểm tra và liên hệ với người tham gia nếu cần.\n\nTrân trọng.";
         sendNotification(seller.getCustomerId(), sellerMessage, auction);
-        emailService.sendEmail(seller.getEmail(), "Thông báo kết thúc phiên đấu giá", sellerEmailText);
+        emailService.sendEmail(seller.getEmail(),
+                "Thông báo kết thúc phiên đấu giá",
+                generateSellerEmailContent(seller.getName(), productName));
 
-        // Gửi thông báo & email cho các người tham gia (không phải người bán)
+        // Người tham gia
         for (Customer participant : participants) {
             if (participant.getCustomerId().equals(seller.getCustomerId())) {
                 continue;
             }
+
             if (participant.getCustomerId().equals(winner.getCustomerId())) {
                 // Người thắng
                 String winnerMessage = String.format("%s - Chúc mừng, bạn đã thắng đấu giá! Vui lòng thanh toán số tiền còn lại: %s VNĐ.",
                         auctionInfo, amountToPay.toPlainString());
-                String winnerEmailText = "Kính chào,\n\nChúc mừng bạn đã thắng đấu giá cho sản phẩm \"" + productName + "\".\nSố tiền cần thanh toán là: "
-                        + amountToPay.toPlainString() + " VNĐ.\nVui lòng thanh toán trong thời gian quy định.\n\nTrân trọng.";
                 sendNotification(participant.getCustomerId(), winnerMessage, auction);
-                emailService.sendEmail(participant.getEmail(), "Chúc mừng! Bạn đã thắng đấu giá", winnerEmailText);
+                emailService.sendEmail(participant.getEmail(),
+                        "Chúc mừng! Bạn đã thắng đấu giá",
+                        generateWinnerEmailContent(participant.getName(), productName, amountToPay.toPlainString()));
             } else {
                 // Người không thắng
                 String loserMessage = auctionInfo + " - Phiên đấu giá đã kết thúc. Cảm ơn bạn đã tham gia đấu giá.";
-                String loserEmailText = "Kính chào,\n\nRất tiếc, bạn không chiến thắng phiên đấu giá cho sản phẩm \"" + productName + "\".\nTiền đặt cọc sẽ được hoàn trả trong thời gian sớm nhất.\n\nTrân trọng.";
                 sendNotification(participant.getCustomerId(), loserMessage, auction);
-                emailService.sendEmail(participant.getEmail(), "Thông báo kết thúc phiên đấu giá", loserEmailText);
+                emailService.sendEmail(participant.getEmail(),
+                        "Thông báo kết thúc phiên đấu giá",
+                        generateLoserEmailContent(participant.getName(), productName));
             }
         }
+    }
+
+    private String generateSellerEmailContent(String name, String productName) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" +
+                "        .footer strong { color: #333; font-size: 17px; }" +
+                "        .footer a { color: #007BFF; text-decoration: none; font-size: 16px; }" +
+                "        .footer a:hover { text-decoration: underline; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + name + "!</strong></p>" +
+                "    <p>Phiên đấu giá của sản phẩm <strong>\"" + productName + "\"</strong> đã kết thúc.</p>" +
+                "    <p>Vui lòng kiểm tra và liên hệ với người tham gia nếu cần.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    private String generateWinnerEmailContent(String name, String productName, String amountToPay) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" +
+                "        .highlight { color: #28a745; font-weight: bold; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + name + "!</strong></p>" +
+                "    <p class='highlight'>Chúc mừng bạn đã thắng đấu giá cho sản phẩm <strong>\"" + productName + "\"</strong>!</p>" +
+                "    <p>Số tiền cần thanh toán là: <strong>" + amountToPay + " VNĐ</strong>.</p>" +
+                "    <p>Vui lòng thanh toán trong thời gian quy định để hoàn tất giao dịch.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    private String generateLoserEmailContent(String name, String productName) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + name + "!</strong></p>" +
+                "    <p>Rất tiếc, bạn không chiến thắng phiên đấu giá cho sản phẩm <strong>\"" + productName + "\"</strong>.</p>" +
+                "    <p>Tiền đặt cọc sẽ được hoàn trả trong thời gian sớm nhất.</p>" +
+                "    <p>Cảm ơn bạn đã tham gia và hy vọng sẽ gặp lại bạn trong các phiên đấu giá tiếp theo.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
     }
 }

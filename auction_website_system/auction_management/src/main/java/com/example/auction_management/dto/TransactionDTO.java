@@ -21,6 +21,7 @@ public class TransactionDTO {
     private String status;
     private LocalDateTime createdAt = LocalDateTime.now();
     private String returnUrl; // Thêm thuộc tính này
-
+    private String customerName;
+    private String productName;
 
 }

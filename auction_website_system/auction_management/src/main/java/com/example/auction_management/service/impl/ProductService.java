@@ -49,7 +49,8 @@ public class ProductService implements IProductService {
 
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
-    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
+    private final TransactionRepository transactionRepository;
 
     private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
@@ -90,6 +91,7 @@ public class ProductService implements IProductService {
 
     private static final Pattern DIACRITIC_PATTERN = Pattern.compile("\\p{M}");
 
+    @Transactional
     @Override
     public Product createProduct(ProductDTO dto) {
         Account account = getAuthenticatedAccount();
@@ -170,23 +172,24 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public Page<Product> getProducts(Pageable pageable) {
-        return productRepository.findByIsDeletedFalse(pageable); // Chỉ lấy sản phẩm chưa bị ẩn
-    }
-
-    @Override
     public Page<Product> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable);
     }
 
     @Transactional
     @Override
-    public void deletePermanently(Integer productId) {
+    public void deleteProduct(Integer productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
-
-        product.setIsDeleted(true);
-        productRepository.save(product);
+        for (Auction auction : product.getAuctions()) {
+            transactionRepository.deleteByAuction(auction);
+        }
+        for (Auction auction : product.getAuctions()) {
+            notificationRepository.deleteByAuction(auction);
+        }
+        imageRepository.deleteByProduct(product);
+        auctionRepository.deleteByProduct(product);
+        productRepository.delete(product);
     }
 
 
@@ -203,6 +206,7 @@ public class ProductService implements IProductService {
     }
 
     @Transactional
+
     public void endAuction(Integer productId) {
         Product product = getProductByIdAndCheckOwner(productId);
         Auction auction = auctionRepository.findByProduct(product)
