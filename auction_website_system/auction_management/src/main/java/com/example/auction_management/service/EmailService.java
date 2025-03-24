@@ -93,15 +93,16 @@ public class EmailService {
     public void sendEmail(String to, String subject, String body) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setFrom("daugiavn123@gmail.com");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);
             mailSender.send(message);
-        } catch (Exception e) {
-            // Log chi tiết lỗi
-            e.printStackTrace();
+            logger.info("Email sent to: {}", to);
+        } catch (MessagingException e) {
+            logger.error("Error sending email to {}: {}", to, e.getMessage());
             throw new MailAuthenticationException("Lỗi khi gửi email", e);
         }
-}}
+    }
+}

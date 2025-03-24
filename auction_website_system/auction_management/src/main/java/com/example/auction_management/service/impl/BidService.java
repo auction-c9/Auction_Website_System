@@ -258,39 +258,29 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 600000) // Mỗi 60 giây
+    @Scheduled(fixedRate = 1000)
     @Transactional
     public void updateAuctionStatuses() {
-        // Cập nhật trạng thái của các phiên đấu giá dựa trên thời gian hiện tại
+        // Cập nhật trạng thái các phiên đấu giá dựa trên thời gian hiện tại
         auctionRepository.updateAuctionStatuses(LocalDateTime.now());
 
-        // Lấy danh sách các phiên đấu giá đã kết thúc mà chưa được thông báo (winnerNotified = false)
+        // Lấy danh sách các phiên đấu giá đã kết thúc mà chưa được thông báo
         List<Auction> endedAuctions = auctionRepository.findByAuctionEndTimeBeforeAndWinnerNotifiedFalse(LocalDateTime.now());
         for (Auction auction : endedAuctions) {
+            // Nếu phiên đấu giá đã kết thúc mà không thỏa mãn điều kiện nào (ví dụ kiểm tra thời gian bổ sung), bạn có thể loại bỏ continue
             if (auction.getAuctionEndTime().plusMinutes(2).isBefore(LocalDateTime.now())) {
                 continue;
             }
 
-            Optional<Bid> winningBid = getCurrentHighestBid(auction.getAuctionId());
-            if (winningBid.isPresent()) {
-                Customer winner = winningBid.get().getCustomer();
-                sendWinnerEmail(winner.getEmail(), auction);
+            // Gọi gửi thông báo và email cho phiên đấu giá kết thúc
+            notificationService.sendAuctionEndCommunications(auction);
 
-                Customer seller = customerRepository.findByAccountUsername(
-                        auction.getProduct().getAccount().getUsername()
-                ).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin người bán!"));
-
-                sendOwnerNotificationEmail(auction, seller, winner);
-
-                // Gửi email cho người đấu giá thất bại
-                sendLoserEmails(auction, winner);
-            }
-
+            // Đánh dấu phiên đấu giá đã thông báo
             auction.setWinnerNotified(true);
             auctionRepository.save(auction);
         }
-
     }
+
 
     private void sendWinnerEmail(String recipientEmail, Auction auction) {
         SimpleMailMessage message = new SimpleMailMessage();
