@@ -274,7 +274,6 @@ public class ProductService implements IProductService {
     }
 
     @Transactional
-
     public void endAuction(Integer productId) {
         Product product = getProductByIdAndCheckOwner(productId);
         Auction auction = auctionRepository.findByProduct(product)

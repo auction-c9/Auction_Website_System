@@ -17,7 +17,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
@@ -39,7 +38,6 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService; // Inject EmailService
     private final FollowRepository followRepository;
-
     /**
      * Gửi thông báo cho userId với nội dung message.
      */
@@ -147,7 +145,6 @@ public class NotificationService {
     public void markAsRead(Integer customerId, Integer auctionId) {
         notificationRepository.updateIsReadByCustomerAndAuction(customerId, auctionId);
     }
-
 
     /**
      * Gửi thông báo & email khi phiên đấu giá kết thúc:

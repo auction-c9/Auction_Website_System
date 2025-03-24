@@ -16,6 +16,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     @Query("SELECT n FROM Notification n JOIN FETCH n.customer c WHERE c.customerId = :customerId ORDER BY n.timestamp DESC")
     List<Notification> findByCustomer_CustomerIdOrderByTimestampDesc(@Param("customerId") Integer customerId);
 
+    List<Notification> findByCustomer_CustomerIdAndAuction_AuctionId(Integer customerId, Integer auctionId);
+
     void deleteByAuction(Auction auction);
     @Modifying
     @Query("update Notification n set n.isRead = true where n.customer.customerId = :customerId and n.auction.auctionId = :auctionId")
