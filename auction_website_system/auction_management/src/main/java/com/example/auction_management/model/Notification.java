@@ -1,5 +1,6 @@
 package com.example.auction_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class Notification {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "auction_id", nullable = false)
+    @JsonIgnore
     private Auction auction;
 
     private String message;
@@ -36,6 +38,4 @@ public class Notification {
         this.message = message;
         this.isRead = isRead;
     }
-
-
 }

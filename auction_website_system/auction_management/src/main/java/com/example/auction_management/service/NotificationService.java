@@ -51,10 +51,11 @@ public class NotificationService {
 
         // Tạo Notification
         Notification notification = new Notification();
-        notification.setCustomer(customer);
+        notification.setCustomer(customerRepository.findById(userId).orElseThrow());
         notification.setMessage(message);
         notification.setTimestamp(LocalDateTime.now());
         notification.setAuction(auction);
+        notification.setIsRead(false);
 
         // Lưu notification vào DB
         notificationRepository.save(notification);
@@ -119,10 +120,20 @@ public class NotificationService {
      * Lấy danh sách thông báo của một customer theo thứ tự thời gian giảm dần.
      */
     public List<Notification> getNotificationsByCustomerId(Integer customerId) {
-        logger.info("getNotificationsByCustomerId() - customerId: {}", customerId);
-        List<Notification> notifications = notificationRepository.findByCustomerCustomerIdOrderByTimestampDesc(customerId);
-        logger.debug("Found {} notifications for customerId {}", notifications.size(), customerId);
-        return notifications;
+        try {
+            logger.info("Fetching notifications for customerId: {}", customerId);
+            Customer customer = customerRepository.findById(customerId)
+                    .orElseThrow(() -> {
+                        logger.error("Customer not found with ID: {}", customerId);
+                        return new RuntimeException("Customer not found");
+                    });
+            List<Notification> notifications = notificationRepository.findByCustomer_CustomerIdOrderByTimestampDesc(customerId);
+            logger.debug("Found {} notifications", notifications.size());
+            return notifications;
+        } catch (Exception e) {
+            logger.error("Error fetching notifications for customerId {}: {}", customerId, e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch notifications");
+        }
     }
 
     public void markAsRead(Integer customerId, Integer auctionId) {

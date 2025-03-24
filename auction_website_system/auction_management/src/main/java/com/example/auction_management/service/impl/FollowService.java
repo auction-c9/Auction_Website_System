@@ -20,6 +20,9 @@ public class FollowService implements IFollowService {
     @Transactional
     public void followSeller(Integer sellerId, Customer follower) {
         Customer seller = getCustomerById(sellerId);
+        if (followRepository.existsByFollowerAndSeller(follower, seller)) {
+            throw new IllegalStateException("Đã theo dõi người bán này");
+        }
         validateFollowRelationship(follower, seller);
 
         Follow follow = new Follow();

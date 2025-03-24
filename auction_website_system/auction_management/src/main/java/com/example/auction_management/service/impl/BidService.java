@@ -110,7 +110,7 @@ public class BidService implements IBidService {
         validateAuctionStatus(auction);
 
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        Customer customer = customerRepository.findByAccountUsername(currentUsername)
+        Customer customer = customerRepository.findByAccount_Username(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin khách hàng!"));
 
         if (auction.getProduct().getAccount().getAccountId().equals(customer.getAccount().getAccountId())) {
@@ -183,7 +183,7 @@ public class BidService implements IBidService {
     }
 
     public Integer getCustomerIdFromUsername(String username) {
-        Customer customer = customerRepository.findByAccountUsername(username)
+        Customer customer = customerRepository.findByAccount_Username(username)
                 .orElseThrow(() -> new CustomerNotFoundException("Không tìm thấy tài khoản khách hàng!"));
         return customer.getCustomerId();
     }

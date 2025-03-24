@@ -54,7 +54,7 @@ public class CustomerService implements ICustomerService {
     @Override
     public Customer getCurrentCustomer(Authentication authentication) {
         String username = authentication.getName();
-        return customerRepository.findByAccountUsername(username)
+        return customerRepository.findByAccount_Username(username)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
     }
 

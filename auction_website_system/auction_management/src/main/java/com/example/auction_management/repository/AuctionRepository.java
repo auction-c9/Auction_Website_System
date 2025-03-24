@@ -64,4 +64,5 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
             "ORDER BY MONTH(a.auctionStartTime)")
     List<Object[]> countAuctionsByMonth();
 
+//    Optional<Auction> findById(Integer id);
 }
