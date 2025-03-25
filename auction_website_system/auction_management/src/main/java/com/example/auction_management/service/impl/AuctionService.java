@@ -186,27 +186,15 @@ public class AuctionService implements IAuctionService {
                 .orElseThrow(() -> new AuctionNotFoundException("Không tìm thấy phiên đấu giá với ID: " + auctionId));
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
-
-        // Log thông tin về chủ sở hữu của product
-        Product product = auction.getProduct();
-        if (product != null) {
-            log.info("Kiểm tra quyền: Auction ID {} thuộc về Product ID {} có chủ sở hữu Account ID {}",
-                    auction.getAuctionId(), product.getProductId(), product.getAccount().getAccountId());
-            if (product.getImages() != null) {
-                log.info("Product ID {} có {} ảnh.", product.getProductId(), product.getImages().size());
-            } else {
-                log.info("Product ID {}: images là null.", product.getProductId());
-            }
-        } else {
-            log.warn("Auction ID {} không có product.", auction.getAuctionId());
-        }
 
         if (!auction.getProduct().getAccount().getAccountId().equals(account.getAccountId())) {
             throw new UnauthorizedActionException("Bạn không có quyền xóa auction này");
         }
         return auction;
+
     }
     @Transactional
     public void updateAuctionStatuses() {
