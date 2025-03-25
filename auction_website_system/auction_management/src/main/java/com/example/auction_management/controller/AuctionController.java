@@ -4,27 +4,21 @@ import com.example.auction_management.dto.AuctionDTO;
 import com.example.auction_management.dto.ProfileResponseDTO;
 import com.example.auction_management.mapper.AuctionMapper;
 import com.example.auction_management.dto.RegisteredAuctionDTO;
-import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
-import com.example.auction_management.service.ICustomerService;
 import com.example.auction_management.repository.AuctionRepository;
+import com.example.auction_management.service.ICustomerService;
 import com.example.auction_management.service.impl.AuctionService;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import java.util.List;
