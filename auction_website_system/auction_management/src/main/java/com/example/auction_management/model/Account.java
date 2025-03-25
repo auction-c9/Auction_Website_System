@@ -36,7 +36,7 @@ public class Account {
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
-    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Customer customer;
 
     @Column(name = "is_locked", columnDefinition = "BOOLEAN DEFAULT FALSE")

@@ -25,7 +25,7 @@ public class Notification {
     private Customer customer;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "auction_id", nullable = false)
+    @JoinColumn(name = "auction_id", nullable = true)
     @JsonIgnore
     private Auction auction;
 
