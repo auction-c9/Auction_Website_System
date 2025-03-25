@@ -1,5 +1,7 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.dto.AuctionDTO;
+import com.example.auction_management.dto.NotificationDTO;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Notification;
 import com.example.auction_management.repository.AuctionRepository;
@@ -14,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -29,9 +32,27 @@ public class NotificationController {
     private SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/{customerId}")
-    public List<Notification> getNotifications(@PathVariable Integer customerId) {
-        return notificationService.getNotificationsByCustomerId(customerId);
+    public List<NotificationDTO> getNotifications(@PathVariable Integer customerId) {
+        List<Notification> notifications = notificationService.getNotificationsByCustomerId(customerId);
+        return notifications.stream().map(notification -> {
+            AuctionDTO auctionDTO = null;
+            if (notification.getAuction() != null) {
+                auctionDTO = new AuctionDTO();
+                auctionDTO.setAuctionId(notification.getAuction().getAuctionId());
+                auctionDTO.setProductName(notification.getAuction().getProduct().getName());
+                // Gán thêm các trường khác nếu cần
+            }
+            return new NotificationDTO(
+                    notification.getNotification_id(),
+                    notification.getCustomer().getCustomerId(),
+                    auctionDTO, // Gán đối tượng AuctionDTO vào đây
+                    notification.getMessage(),
+                    notification.getTimestamp(),
+                    notification.getIsRead()
+            );
+        }).collect(Collectors.toList());
     }
+
 
     @PostMapping("/test-notification")
     public ResponseEntity<?> sendTestNotification(Principal principal) {
@@ -44,12 +65,32 @@ public class NotificationController {
         return ResponseEntity.ok("Notification sent");
     }
     @PutMapping("/read/{customerId}/{auctionId}")
-    public ResponseEntity<Void> markNotificationsAsRead(
+    public ResponseEntity<List<NotificationDTO>> markNotificationsAsRead(
             @PathVariable Integer customerId,
             @PathVariable Integer auctionId) {
         notificationService.markAsRead(customerId, auctionId);
-        return ResponseEntity.ok().build();
+        List<Notification> notifications = notificationService.getNotificationsByCustomerId(customerId);
+        List<NotificationDTO> dtos = notifications.stream().map(notification -> {
+            AuctionDTO auctionDTO = null;
+            if (notification.getAuction() != null) {
+                auctionDTO = new AuctionDTO();
+                auctionDTO.setAuctionId(notification.getAuction().getAuctionId());
+                auctionDTO.setProductName(notification.getAuction().getProduct().getName());
+                // Gán thêm các trường khác nếu cần
+            }
+            return new NotificationDTO(
+                    notification.getNotification_id(),
+                    notification.getCustomer().getCustomerId(),
+                    auctionDTO,  // Đúng kiểu, là AuctionDTO
+                    notification.getMessage(),
+                    notification.getTimestamp(),
+                    notification.getIsRead()
+            );
+
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
+
 
     @PostMapping("/send")
     public ResponseEntity<Void> sendNotification(@RequestParam Integer customerId, @RequestParam String message, @RequestParam Integer auctionId) {

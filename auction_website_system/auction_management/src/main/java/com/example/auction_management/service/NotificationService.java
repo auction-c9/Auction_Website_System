@@ -10,12 +10,14 @@ import com.example.auction_management.repository.CustomerRepository;
 import com.example.auction_management.repository.NotificationRepository;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +38,7 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService; // Inject EmailService
     private final FollowRepository followRepository;
+
     /**
      * Gửi thông báo cho userId với nội dung message.
      */
@@ -139,11 +142,11 @@ public class NotificationService {
         }
     }
 
+    @Transactional
     public void markAsRead(Integer customerId, Integer auctionId) {
-        List<Notification> notifications = notificationRepository.findByCustomer_CustomerIdAndAuction_AuctionId(customerId, auctionId);
-        notifications.forEach(notification -> notification.setIsRead(true));
-        notificationRepository.saveAll(notifications);
+        notificationRepository.updateIsReadByCustomerAndAuction(customerId, auctionId);
     }
+
 
     /**
      * Gửi thông báo & email khi phiên đấu giá kết thúc:
