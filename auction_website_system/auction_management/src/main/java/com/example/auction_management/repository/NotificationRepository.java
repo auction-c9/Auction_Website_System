@@ -20,9 +20,4 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     @Modifying
     @Query("update Notification n set n.isRead = true where n.customer.customerId = :customerId and n.auction.auctionId = :auctionId")
     void updateIsReadByCustomerAndAuction(@Param("customerId") Integer customerId, @Param("auctionId") Integer auctionId);
-
-    @Modifying
-    @Query("update Notification n set n.isRead = true where n.customer.customerId = :customerId and n.auction.auctionId = :auctionId")
-    void updateIsReadByCustomerAndAuction(@Param("customerId") Integer customerId, @Param("auctionId") Integer auctionId);
-
 }
