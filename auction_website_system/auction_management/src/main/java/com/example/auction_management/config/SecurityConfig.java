@@ -101,7 +101,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviews","/api/follows/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history","/api/auctions/unregister/**","/api/auctions/profile/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auctions/registered-history/**","/api/auctions/unregister/**","/api/auctions/profile/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auctions/cancel/**" ).authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/products/create").authenticated()
                         .requestMatchers("/api/bids/deposit/check").authenticated()

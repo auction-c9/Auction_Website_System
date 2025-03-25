@@ -8,17 +8,23 @@ import com.example.auction_management.exception.ResourceNotFoundException;
 import com.example.auction_management.model.Auction;
 import com.example.auction_management.model.Auction.AuctionStatus;
 import com.example.auction_management.model.Product;
+import com.example.auction_management.service.ICustomerService;
 import com.example.auction_management.repository.AuctionRepository;
 import com.example.auction_management.service.impl.AuctionService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 
@@ -33,10 +39,11 @@ public class AuctionController {
 
     private final AuctionService auctionService;
     private final AuctionRepository auctionRepository;
-
-    public AuctionController(AuctionService auctionService, AuctionRepository auctionRepository) {
+    private final ICustomerService customerService;
+    public AuctionController(AuctionService auctionService, AuctionRepository auctionRepository, ICustomerService customerService) {
         this.auctionService = auctionService;
         this.auctionRepository = auctionRepository;
+        this.customerService = customerService;
     }
 
 
@@ -99,16 +106,20 @@ public class AuctionController {
     }
 
     @GetMapping("/registered-history")
-    public ResponseEntity<?> registerForAuction(
-            Authentication authentication
-    ) {
+    public ResponseEntity<?> getRegisteredAuctions(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
         try {
-            Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
-            Integer customerId = (Integer) details.get("customerId");
-            List<RegisteredAuctionDTO> auctions = auctionService.getRegisteredAuctionsByCustomerId(customerId);
-            return ResponseEntity.ok(auctions);
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            Integer customerId = customerService.getCustomerIdByUsername(userDetails.getUsername());
+
+            Page<RegisteredAuctionDTO> result = auctionService.getRegisteredAuctionsByCustomerId(customerId, page, size);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Error retrieving auctions"));
         }
     }
 
