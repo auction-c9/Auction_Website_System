@@ -11,6 +11,7 @@ import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.EmailService;
 import com.example.auction_management.service.IProductService;
+import com.example.auction_management.service.NotificationService;
 import com.example.auction_management.validation.AuctionCreateGroup;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
@@ -43,13 +44,13 @@ public class ProductService implements IProductService {
     private final AuctionRepository auctionRepository;
     private final AccountRepository accountRepository;
     private final Validator validator;
-
     private final EmailService emailService;
-
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final CustomerRepository customerRepository;
     private final NotificationRepository notificationRepository;
     private final TransactionRepository transactionRepository;
+    private final FollowRepository followRepository;   // Thêm vào
+    private final NotificationService notificationService; // Thêm vào
 
     private final Cloudinary cloudinary = CloudinaryConfig.getCloudinary();
 
@@ -118,12 +119,38 @@ public class ProductService implements IProductService {
             registration.setAuction(auction);
             registration.setCustomer(customer);
             auctionRegistrationRepository.save(registration);
+
+            notifyFollowers(product, auction);
             return product;
         } catch (IOException e) {
             logger.error("Lỗi khi tạo sản phẩm: {}", e.getMessage(), e);
             throw new ProductCreationException("Lỗi khi tạo sản phẩm: " + e.getMessage());
         }
     }
+
+    /**
+     * Gửi thông báo cho những follower của seller khi seller đăng bài (sản phẩm) mới.
+     * @param product Sản phẩm mới được tạo
+     * @param auction Phiên đấu giá liên quan đến sản phẩm
+     */
+    private void notifyFollowers(Product product, Auction auction) {
+        // Lấy seller từ thông tin tài khoản của sản phẩm
+        Customer seller = product.getAccount().getCustomer();
+
+        // Lấy danh sách follower của seller
+        List<Customer> followers = followRepository.findFollowersBySeller(seller);
+
+        // Nội dung thông báo, có thể tùy chỉnh thêm thông tin
+        String message = String.format("Seller %s vừa đăng sản phẩm mới: %s",
+                seller.getName(), product.getName());
+
+        // Gửi thông báo cho từng follower thông qua NotificationService
+        for (Customer follower : followers) {
+            notificationService.sendNotification(follower.getCustomerId(), message, auction);
+        }
+    }
+
+
 
     private boolean containsBannedWords(String text) {
         if (text == null || text.trim().isEmpty()) return false;
