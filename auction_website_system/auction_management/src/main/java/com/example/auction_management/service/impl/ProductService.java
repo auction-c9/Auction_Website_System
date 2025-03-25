@@ -171,8 +171,9 @@ public class ProductService implements IProductService {
     }
 
     @Override
+    @Transactional
     public Page<Product> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable);
+        return productRepository.findAllWithDetails(pageable);
     }
 
     @Transactional
