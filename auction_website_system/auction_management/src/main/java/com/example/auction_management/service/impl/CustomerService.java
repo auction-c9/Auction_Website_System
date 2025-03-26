@@ -25,10 +25,10 @@ public class CustomerService implements ICustomerService {
     private ImageRepository imageRepository;
 
     @Override
-    public Page<Customer> getCustomers(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+    public Page<Customer> getCustomers(Pageable pageable) {
         return customerRepository.findAllNonAdminCustomers(pageable);
     }
+
 
 
     @Override

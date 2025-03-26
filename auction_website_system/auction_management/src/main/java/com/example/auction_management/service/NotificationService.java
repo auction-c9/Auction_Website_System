@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -246,6 +247,9 @@ public class NotificationService {
     }
 
     private String generateWinnerEmailContent(String name, String productName, String amountToPay) {
+        DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
+        String formattedAmount = formatter.format(amountToPay);
+
         return "<!DOCTYPE html>" +
                 "<html>" +
                 "<head>" +
@@ -261,7 +265,7 @@ public class NotificationService {
                 "<div class='content'>" +
                 "    <p style='font-size: 20px;'><strong>Xin chào, " + name + "!</strong></p>" +
                 "    <p class='highlight'>Chúc mừng bạn đã thắng đấu giá cho sản phẩm <strong>\"" + productName + "\"</strong>!</p>" +
-                "    <p>Số tiền cần thanh toán là: <strong>" + amountToPay + " VNĐ</strong>.</p>" +
+                "    <p>Số tiền cần thanh toán là: <strong>" + formattedAmount + " VNĐ</strong>.</p>" +
                 "    <p>Vui lòng thanh toán trong thời gian quy định để hoàn tất giao dịch.</p>" +
                 "</div>" +
                 "<div class='footer'>" +
