@@ -208,6 +208,17 @@ public class ProductService implements IProductService {
     public void deleteProduct(Integer productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+        Account account = product.getAccount();
+        if (account != null && account.getCustomer() != null) {
+            String userEmail = account.getCustomer().getEmail();
+            String userName = account.getCustomer().getName();
+            String productName = product.getName();
+
+            String subject = "Thông báo: Sản phẩm của bạn đã bị xóa";
+            String emailContent = generateDeleteProductEmailContent(userName, productName);
+
+            emailService.sendEmail(userEmail, subject, emailContent);
+        }
         for (Auction auction : product.getAuctions()) {
             transactionRepository.deleteByAuction(auction);
         }
@@ -219,6 +230,36 @@ public class ProductService implements IProductService {
         productRepository.delete(product);
     }
 
+    private String generateDeleteProductEmailContent(String customerName, String productName) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <style>" +
+                "        body { font-family: Arial, sans-serif; line-height: 1.8; color: #333; margin: 0; padding: 0; font-size: 16px; }" +
+                "        .content { padding: 25px; background-color: #f9f9f9; border-radius: 8px; max-width: 600px; margin: 20px auto; text-align: left; font-size: 18px; }" +
+                "        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 16px; color: #666; text-align: left; }" +
+                "        .footer strong { color: #333; font-size: 17px; }" +
+                "        .footer a { color: #007BFF; text-decoration: none; font-size: 16px; }" +
+                "        .footer a:hover { text-decoration: underline; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='content'>" +
+                "    <p style='font-size: 20px;'><strong>Xin chào, " + customerName + "!</strong></p>" +
+                "    <p>Chúng tôi xin thông báo rằng sản phẩm <strong>\"" + productName + "\"</strong> của bạn đã bị xóa khỏi hệ thống do vi phạm chính sách đăng bài của chúng tôi.</p>" +
+                "    <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi để được hỗ trợ.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "    <p>Trân trọng,</p>" +
+                "    <p><strong>C9-Stock</strong></p>" +
+                "    <p>📍 Địa chỉ: 295 Nguyễn Tất Thành, Thanh Bình, Hải Châu, Đà Nẵng</p>" +
+                "    <p>📞 Số điện thoại: <a href='tel:+84356789999'>+84 356789999</a></p>" +
+                "    <p>✉ Email: <a href='mailto:daugiavn123@gmail.com'>daugiavn123@gmail.com</a></p>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
 
     @Transactional
 
