@@ -1,5 +1,6 @@
 package com.example.auction_management.controller;
 
+import com.example.auction_management.model.Account;
 import com.example.auction_management.model.Customer;
 import com.example.auction_management.model.Follow;
 import com.example.auction_management.repository.CustomerRepository;
@@ -25,7 +26,8 @@ public class FollowController {
     @PostMapping("/{sellerId}")
     public ResponseEntity<?> followSeller(@PathVariable Integer sellerId,
                                           Authentication authentication) {
-        Customer follower = customerService.getCurrentCustomer(authentication);
+        String username = authentication.getName();
+        Customer follower = customerService.getCustomerByUsername(username);
         followService.followSeller(sellerId, follower);
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -36,7 +38,7 @@ public class FollowController {
     @DeleteMapping("/{sellerId}")
     public ResponseEntity<?> unfollowSeller(@PathVariable Integer sellerId,
                                             Authentication authentication) {
-        Customer follower = customerService.getCurrentCustomer(authentication);
+        Customer follower = customerService.getCustomerByUsername(authentication.getName());
         followService.unfollowSeller(sellerId, follower);
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -47,7 +49,7 @@ public class FollowController {
     @GetMapping("/check/{sellerId}")
     public ResponseEntity<?> checkFollowStatus(@PathVariable Integer sellerId,
                                                Authentication authentication) {
-        Customer follower = customerService.getCurrentCustomer(authentication);
+        Customer follower = customerService.getCustomerByUsername(authentication.getName());
         boolean isFollowing = followService.checkFollowStatus(sellerId, follower);
         return ResponseEntity.ok(Map.of(
                 "isFollowing", isFollowing

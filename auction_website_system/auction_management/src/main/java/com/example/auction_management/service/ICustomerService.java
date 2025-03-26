@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface ICustomerService extends IService<Customer, Integer> {
     Page<Customer> getCustomers(int page, int size);
-    Customer getCurrentCustomer(Authentication authentication);
+    Customer getCustomerByUsername(String username);
     Customer getCustomerById(Integer id);
     Integer getCustomerIdByUsername(String username);
 }

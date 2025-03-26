@@ -15,15 +15,20 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FollowService implements IFollowService {
     private final FollowRepository followRepository;
-    private final CustomerService customerService;
+    private final CustomerRepository customerRepository;
 
     @Transactional
-    public void followSeller(Integer sellerId, Customer follower) {
-        Customer seller = getCustomerById(sellerId);
+    public void followSeller(Integer sellerAccountId, Customer follower) {
+        Customer seller = customerRepository.findByAccount_AccountId(sellerAccountId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy người bán"));
+
+        if (follower.getCustomerId().equals(sellerAccountId)) {
+            throw new IllegalArgumentException("Không thể theo dõi chính bạn");
+        }
+
         if (followRepository.existsByFollowerAndSeller(follower, seller)) {
             throw new IllegalStateException("Đã theo dõi người bán này");
         }
-        validateFollowRelationship(follower, seller);
 
         Follow follow = new Follow();
         follow.setFollower(follower);
@@ -32,24 +37,23 @@ public class FollowService implements IFollowService {
     }
 
     @Transactional
-    public void unfollowSeller(Integer sellerId, Customer follower) {
-        Customer seller = getCustomerById(sellerId);
+    public void unfollowSeller(Integer sellerAccountId, Customer follower) {
+        // Sửa thành tìm seller bằng account_id (giống followSeller)
+        Customer seller = customerRepository.findByAccount_AccountId(sellerAccountId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy người bán"));
+
+        // Kiểm tra tồn tại trước khi xóa
+        if (!followRepository.existsByFollowerAndSeller(follower, seller)) {
+            throw new NotFoundException("Bạn chưa theo dõi người bán này");
+        }
+
         followRepository.deleteByFollowerAndSeller(follower, seller);
     }
 
-    public boolean checkFollowStatus(Integer sellerId, Customer follower) {
-        Customer seller = getCustomerById(sellerId);
+    public boolean checkFollowStatus(Integer sellerAccountId, Customer follower) {
+        Customer seller = customerRepository.findByAccount_AccountId(sellerAccountId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy người bán"));
+
         return followRepository.existsByFollowerAndSeller(follower, seller);
-    }
-
-    private Customer getCustomerById(Integer id) {
-        return customerService.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
-    }
-
-    private void validateFollowRelationship(Customer follower, Customer seller) {
-        if (followRepository.existsByFollowerAndSeller(follower, seller)) {
-            throw new IllegalArgumentException("Đã theo dõi người bán này");
-        }
     }
 }

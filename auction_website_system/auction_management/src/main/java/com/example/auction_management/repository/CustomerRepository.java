@@ -26,5 +26,4 @@ public interface CustomerRepository extends JpaRepository<Customer, Integer> {
     Page<Customer> findAllNonAdminCustomers(Pageable pageable);
 
     Optional<Customer> findByAccount_AccountId(Integer accountId);
-
 }
