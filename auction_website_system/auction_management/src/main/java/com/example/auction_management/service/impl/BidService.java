@@ -258,7 +258,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 100000)
+    @Scheduled(fixedRate = 1000)
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái các phiên đấu giá dựa trên thời gian hiện tại
@@ -358,7 +358,7 @@ public class BidService implements IBidService {
             throw new RuntimeException("Lỗi khi gửi email!", e);
         }
     }
-    @Scheduled(cron = "0 53 15 * * ?")
+    @Scheduled(cron = "0 44 16 * * ?")
     public void scheduleFailedBidsReport() {
         sendFailedBidsReportToAdmin();
     }
