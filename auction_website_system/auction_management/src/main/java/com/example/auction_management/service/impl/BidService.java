@@ -362,7 +362,7 @@ public class BidService implements IBidService {
             throw new RuntimeException("Lỗi khi gửi email!", e);
         }
     }
-    @Scheduled(cron = "0 44 16 * * ?")
+    @Scheduled(cron = "0 0 12 * * ?")
     public void scheduleFailedBidsReport() {
         sendFailedBidsReportToAdmin();
     }
