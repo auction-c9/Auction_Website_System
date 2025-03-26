@@ -6,6 +6,7 @@ import com.example.auction_management.dto.BidResponseDTO;
 import com.example.auction_management.service.impl.BidService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,12 +28,17 @@ public class BidController {
 
     @GetMapping("/user")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public ResponseEntity<List<BidResponseDTO>> getBidHistoryByCurrentUser(Authentication authentication) {
+    public ResponseEntity<Page<BidResponseDTO>> getBidHistoryByCurrentUser(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Integer customerId = bidService.getCustomerIdFromUsername(userDetails.getUsername());
-        List<BidResponseDTO> bidHistory = bidService.getBidHistoryByCustomerId(customerId);
+        Page<BidResponseDTO> bidHistory = bidService.getBidHistoryByCustomerId(customerId, page, size);
         return ResponseEntity.ok(bidHistory);
     }
+
 
 
     /**

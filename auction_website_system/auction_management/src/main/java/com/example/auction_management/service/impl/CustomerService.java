@@ -52,10 +52,11 @@ public class CustomerService implements ICustomerService {
     }
 
     @Override
-    public Customer getCurrentCustomer(Authentication authentication) {
-        String username = authentication.getName();
-        return customerRepository.findByAccount_Username(username)
-                .orElseThrow(() -> new NotFoundException("Customer not found"));
+    public Customer getCustomerByUsername(String username) {
+        Integer customerId = customerRepository.findCustomerIdByUsername(username)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy Customer với username: " + username));
+        return customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer không tồn tại"));
     }
 
     @Override

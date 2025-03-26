@@ -7,9 +7,12 @@ import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IBidService;
 import com.example.auction_management.service.NotificationService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +33,7 @@ import java.io.IOException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -68,17 +72,17 @@ public class BidService implements IBidService {
         bidRepository.delete(bid);
     }
 
-    public List<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId) {
+    @Transactional(readOnly = true)
+    public Page<BidResponseDTO> getBidHistoryByCustomerId(Integer customerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("bidTime").descending());
         Set<Integer> reviewedBidIds = reviewRepository.findReviewedBidIdsByCustomerId(customerId);
 
-        return bidRepository.findByCustomer_CustomerIdOrderByBidTimeDesc(customerId)
-                .stream()
+        return bidRepository.findByCustomer_CustomerId(customerId, pageable)
                 .map(bid -> {
                     BidResponseDTO dto = mapToBidResponseDTOByCustomer(bid);
                     dto.setHasReviewed(reviewedBidIds.contains(bid.getBidId()));
                     return dto;
-                })
-                .collect(Collectors.toList());
+                });
     }
 
     // Sửa lại phương thức mapToBidResponseDTO để thêm thông tin từ Auction
