@@ -51,11 +51,14 @@ public class AdminController {
     }
 
     @GetMapping("/customers")
-    public ResponseEntity<Page<Customer>> getAllCustomers(@RequestParam(defaultValue = "0") int page,
-                                                          @RequestParam(defaultValue = "5") int size) {
+    public ResponseEntity<Page<Customer>> getAllCustomers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
 
-        Page<Customer> customers = customerService.getCustomers(page, size);
-        return new ResponseEntity<>(customers, HttpStatus.OK);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("account.createdAt").descending());
+        Page<Customer> customers = customerService.getCustomers(pageable);
+
+        return ResponseEntity.ok(customers);
     }
 
     @GetMapping("/customers/{customerId}")
@@ -102,7 +105,7 @@ public class AdminController {
     public ResponseEntity<Page<TransactionDTO>> getAllTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) { // Thêm phân trang
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size,Sort.by("createdAt").descending());
         Page<TransactionDTO> transactions = transactionService.getAllTransactions(pageable);
         return ResponseEntity.ok(transactions);
     }

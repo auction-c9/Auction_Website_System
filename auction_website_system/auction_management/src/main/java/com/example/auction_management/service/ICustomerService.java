@@ -8,7 +8,7 @@ import org.springframework.security.core.Authentication;
 import java.util.Optional;
 
 public interface ICustomerService extends IService<Customer, Integer> {
-    Page<Customer> getCustomers(int page, int size);
+    Page<Customer> getCustomers(Pageable pageable);
     Customer getCurrentCustomer(Authentication authentication);
     Customer getCustomerById(Integer id);
 }
