@@ -64,4 +64,9 @@ public class CustomerService implements ICustomerService {
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
     }
 
+    @Override
+    public Integer getCustomerIdByUsername(String username) {
+        return customerRepository.findCustomerIdByUsername(username)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy customer với username: " + username));
+    }
 }

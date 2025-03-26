@@ -20,6 +20,7 @@ public interface FollowRepository extends JpaRepository<Follow,Integer> {
     void deleteByFollowerAndSeller(@Param("follower") Customer follower,
                                    @Param("seller") Customer seller);
 
-    @Query("SELECT f FROM Follow f WHERE f.seller = :seller")
-    List<Follow> findBySeller(@Param("seller") Customer seller);
+    @Query("SELECT f.follower FROM Follow f WHERE f.seller = :seller")
+    List<Customer> findFollowersBySeller(@Param("seller") Customer seller);
+
 }

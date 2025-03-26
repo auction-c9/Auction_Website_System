@@ -11,4 +11,5 @@ public interface ICustomerService extends IService<Customer, Integer> {
     Page<Customer> getCustomers(Pageable pageable);
     Customer getCurrentCustomer(Authentication authentication);
     Customer getCustomerById(Integer id);
+    Integer getCustomerIdByUsername(String username);
 }

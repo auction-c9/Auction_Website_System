@@ -1,5 +1,6 @@
 package com.example.auction_management.service.impl;
 
+import java.util.Collections;
 import com.example.auction_management.dto.AuctionInfoDto;
 import com.example.auction_management.dto.ProfileResponseDTO;
 import com.example.auction_management.dto.RegisteredAuctionDTO;
@@ -10,11 +11,16 @@ import com.example.auction_management.exception.UnauthorizedActionException;
 import com.example.auction_management.model.*;
 import com.example.auction_management.repository.*;
 import com.example.auction_management.service.IAuctionService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,7 +40,6 @@ public class AuctionService implements IAuctionService {
     private final CustomerRepository customerRepository;
     private final AuctionRegistrationRepository auctionRegistrationRepository;
     private final ReviewRepository reviewRepository;
-
 
     // ------------------ CORE SERVICES ----------------------
 
@@ -203,10 +208,6 @@ public class AuctionService implements IAuctionService {
         }
         return auction;
     }
-
-    // Các phương thức khác (updateAuctionStatuses, registerCustomerForAuction, ...) giữ nguyên
-
-
     @Transactional
     public void updateAuctionStatuses() {
         auctionRepository.updateAuctionStatuses(LocalDateTime.now());
@@ -258,23 +259,26 @@ public class AuctionService implements IAuctionService {
         auctionRegistrationRepository.save(registration);
     }
 
-    public List<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId) {
-        List<AuctionRegistration> registrations = auctionRegistrationRepository.findByCustomer_CustomerId(customerId);
-        return registrations.stream()
-                .map(registration -> {
-                    Auction auction = registration.getAuction();
-                    RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
-                    dto.setAuctionId(auction.getAuctionId());
-                    dto.setProductName(auction.getProduct().getName());
-                    dto.setProductDescription(auction.getProduct().getDescription());
-                    dto.setBasePrice(auction.getProduct().getBasePrice());
-                    dto.setAuctionStartTime(auction.getAuctionStartTime());
-                    dto.setAuctionEndTime(auction.getAuctionEndTime());
-                    dto.setStatus(auction.getStatus());
-                    dto.setCreatedAt(auction.getCreatedAt());
-                    return dto;
-                })
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Page<RegisteredAuctionDTO> getRegisteredAuctionsByCustomerId(Integer customerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("auction.auctionStartTime").descending());
+        Page<AuctionRegistration> registrations = auctionRegistrationRepository.findByCustomerIdWithBids(customerId, pageable);
+
+        return registrations.map(registration -> {
+            Auction auction = registration.getAuction();
+            Product product = auction.getProduct();
+
+            RegisteredAuctionDTO dto = new RegisteredAuctionDTO();
+            dto.setAuctionId(auction.getAuctionId());
+            dto.setProductName(product != null ? product.getName() : "N/A");
+            dto.setProductDescription(product != null ? product.getDescription() : "N/A");
+            dto.setBasePrice(product != null ? product.getBasePrice() : BigDecimal.ZERO);
+            dto.setAuctionStartTime(auction.getAuctionStartTime());
+            dto.setAuctionEndTime(auction.getAuctionEndTime());
+            dto.setStatus(auction.getStatus());
+
+            return dto;
+        });
     }
 
     @Transactional
