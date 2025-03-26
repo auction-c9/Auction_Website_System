@@ -23,6 +23,7 @@ import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 // Chúng ta cần import EmailService
 import com.example.auction_management.service.EmailService;
@@ -84,8 +85,10 @@ public class NotificationService {
                 });
         logger.debug("Found auction with ID: {}", auctionId);
 
-        String productName = auction.getProduct().getName();
-        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s", auctionId, productName);
+        // Tạo chuỗi chứa thông tin phiên đấu giá và tên sản phẩm
+        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s",
+                auction.getAuctionId(),
+                auction.getProduct().getName());
 
         Customer bidder = customerRepository.findById(bidderId)
                 .orElseThrow(() -> {
@@ -103,18 +106,25 @@ public class NotificationService {
         List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auctionId);
         logger.debug("Found {} participants for auction ID {}", participants.size(), auctionId);
 
+        // Gửi thông báo cho những người tham gia (trừ bidder hiện tại)
+        // Ở đây, "message" là nội dung tùy chỉnh, bạn có thể sửa thành chuỗi khác.
+        // Hoặc gộp "auctionInfo" với "message" để tạo thành một câu hoàn chỉnh
         String bidMessage = String.format("%s - %s", auctionInfo, message);
-        for (Customer customer : participants) {
-            if (!customer.getCustomerId().equals(bidderId)) {
-                sendNotification(seller.getCustomerId(), bidMessage, auction);
+        for (Customer participant : participants) {
+            if (!participant.getCustomerId().equals(bidderId)) {
+                sendNotification(participant.getCustomerId(), bidMessage, auction);
             }
         }
 
+        // Gửi thông báo cho người bán (nếu người bán không phải chính bidder)
         if (!seller.getCustomerId().equals(bidderId)) {
-            String sellerMessage = String.format("%s - Có người vừa đặt giá thành công cho sản phẩm của bạn!", auctionInfo);
+            String sellerMessage = String.format(
+                    "%s - Có người vừa đặt giá thành công cho sản phẩm của bạn! " ,
+                    auction.getAuctionId(), auction.getProduct().getName());
             sendNotification(seller.getCustomerId(), sellerMessage, auction);
         }
     }
+
 
     /**
      * Lấy người bán của một phiên đấu giá.
@@ -148,6 +158,20 @@ public class NotificationService {
         notificationRepository.updateIsReadByCustomerAndAuction(customerId, auctionId);
     }
 
+    /**
+     * Gửi thông báo tổng hợp cho người dùng.
+     * Thông báo này sẽ gộp chung các thông tin thông báo khác và ghi rõ phiên đấu giá (mã phiên và tên sản phẩm).
+     */
+    public void sendAggregatedNotification(Integer customerId, Auction auction, List<String> messages) {
+        // Tạo thông tin phiên đấu giá rõ ràng
+        String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s", auction.getAuctionId(), auction.getProduct().getName());
+
+        // Gộp các thông báo riêng thành 1 thông báo, ngăn cách bởi dấu chấm phẩy
+        String aggregatedMessage = auctionInfo + " - " + String.join("; ", messages);
+
+        // Gửi thông báo
+        sendNotification(customerId, aggregatedMessage, auction);
+    }
 
     /**
      * Gửi thông báo & email khi phiên đấu giá kết thúc:
@@ -206,7 +230,7 @@ public class NotificationService {
                         generateWinnerEmailContent(participant.getName(), productName, amountToPay.toPlainString()));
             } else {
                 // Người không thắng
-                String loserMessage = auctionInfo + " - Phiên đấu giá đã kết thúc. Cảm ơn bạn đã tham gia đấu giá.";
+                String loserMessage = auctionInfo + " - Phiên đấu giá đã kết thúc. Sản phẩm đã thuộc về người khác. Cảm ơn bạn đã tham gia đấu giá.";
                 sendNotification(participant.getCustomerId(), loserMessage, auction);
                 emailService.sendEmail(participant.getEmail(),
                         "Thông báo kết thúc phiên đấu giá",

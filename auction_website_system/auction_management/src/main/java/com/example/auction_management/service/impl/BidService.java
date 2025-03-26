@@ -140,19 +140,24 @@ public class BidService implements IBidService {
         Bid savedBid = bidRepository.save(newBid);
 
         // Gửi thông báo đến người bán
-        Customer seller = auction.getProduct().getAccount().getCustomer();
+        String auctionDetails = "Phiên đấu giá #" + auction.getAuctionId()
+                + " cho sản phẩm '" + auction.getProduct().getName() + "'"
+                + " sẽ kết thúc vào lúc: " + auction.getAuctionEndTime() + ". ";
 
+        // Gửi thông báo đến người bán với thông tin chi tiết
+        Customer seller = auction.getProduct().getAccount().getCustomer();
+        String sellerMessage = "Có người vừa đặt giá mới cho sản phẩm của bạn. " + auctionDetails;
         System.out.println("Owner Account ID: " + seller);
         System.out.println("Sending notification to seller: " + seller);
-        notificationService.sendNotification(seller.getCustomerId(), "Có người vừa đặt giá mới cho sản phẩm của bạn!", auction);
+        notificationService.sendNotification(seller.getCustomerId(), sellerMessage, auction);
 
-        // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại)
-        // Giả sử bạn có một phương thức trong bidRepository để lấy danh sách các customer đã tham gia
+        // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại) với thông tin chi tiết
         List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auction.getAuctionId());
+        String participantMessage = "Có người vừa đặt giá cao hơn bạn. " + auctionDetails;
         for (Customer participant : participants) {
             if (!participant.getCustomerId().equals(customer.getCustomerId())) {
                 System.out.println("Sending notification to participant: " + participant.getCustomerId());
-                notificationService.sendNotification(participant.getCustomerId(), "Có người vừa đặt giá cao hơn bạn trong phiên đấu giá!", auction);
+                notificationService.sendNotification(participant.getCustomerId(), participantMessage, auction);
             }
         }
 
@@ -262,7 +267,7 @@ public class BidService implements IBidService {
         transactionRepository.save(transaction);
     }
 
-    @Scheduled(fixedRate = 100000)
+    @Scheduled(fixedRate = 1000)
     @Transactional
     public void updateAuctionStatuses() {
         // Cập nhật trạng thái các phiên đấu giá dựa trên thời gian hiện tại
