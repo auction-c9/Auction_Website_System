@@ -139,34 +139,22 @@ public class BidService implements IBidService {
         newBid.setIsWinner(Boolean.TRUE);
         Bid savedBid = bidRepository.save(newBid);
 
-        // Gửi thông báo đến người bán
+        // Xây dựng thông tin chi tiết phiên đấu giá
         String auctionDetails = "Phiên đấu giá #" + auction.getAuctionId()
                 + " cho sản phẩm '" + auction.getProduct().getName() + "'"
                 + " sẽ kết thúc vào lúc: " + auction.getAuctionEndTime() + ". ";
 
-        // Gửi thông báo đến người bán với thông tin chi tiết
-        Customer seller = auction.getProduct().getAccount().getCustomer();
+        // Xác định thông điệp cho người bán và những người tham gia khác
         String sellerMessage = "Có người vừa đặt giá mới cho sản phẩm của bạn. " + auctionDetails;
-        System.out.println("Owner Account ID: " + seller);
-        System.out.println("Sending notification to seller: " + seller);
-        notificationService.sendNotification(seller.getCustomerId(), sellerMessage, auction);
-
-        // Gửi thông báo đến những người tham gia đấu giá (ngoại trừ người đặt giá hiện tại) với thông tin chi tiết
-        List<Customer> participants = bidRepository.findDistinctCustomersByAuctionId(auction.getAuctionId());
         String participantMessage = "Có người vừa đặt giá cao hơn bạn. " + auctionDetails;
-        for (Customer participant : participants) {
-            if (!participant.getCustomerId().equals(customer.getCustomerId())) {
-                System.out.println("Sending notification to participant: " + participant.getCustomerId());
-                notificationService.sendNotification(participant.getCustomerId(), participantMessage, auction);
-            }
-        }
+
+        // Gọi phương thức gửi thông báo tổng hợp trong NotificationService
+        notificationService.sendBidNotification(auction.getAuctionId(), customer.getCustomerId(), sellerMessage, participantMessage);
 
         return mapToBidResponseDTO(savedBid);
     }
 
-
     // ---------------------- HISTORY & WINNER ----------------------
-
     public List<BidResponseDTO> getBidHistoryByAuctionId(Integer auctionId) {
         List<Bid> bids = bidRepository.findByAuction_AuctionIdOrderByBidAmountDesc(auctionId);
         if (bids == null || bids.isEmpty()) {
@@ -244,7 +232,6 @@ public class BidService implements IBidService {
         return transactionRepository.existsByCustomer_CustomerIdAndAuction_AuctionIdAndStatus(customerId, auctionId, "SUCCESS");
     }
 
-
     /**
      * Lưu thông tin giao dịch đặt cọc
      */
@@ -281,7 +268,7 @@ public class BidService implements IBidService {
                 continue;
             }
 
-            // Gọi gửi thông báo và email cho phiên đấu giá kết thúc
+            // Gọi gửi thông báo và email cho phiên đấu giá kết thúc thông qua NotificationService
             notificationService.sendAuctionEndCommunications(auction);
 
             // Đánh dấu phiên đấu giá đã thông báo
@@ -333,7 +320,6 @@ public class BidService implements IBidService {
             throw new RuntimeException("Lỗi khi tạo file Excel", e);
         }
     }
-
 
     // Tạo style cho header
     private CellStyle createHeaderStyle(Workbook workbook) {

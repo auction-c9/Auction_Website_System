@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
 
-// Chúng ta cần import EmailService
+// Import EmailService
 import com.example.auction_management.service.EmailService;
 
 @Service
@@ -56,7 +56,7 @@ public class NotificationService {
 
         // Tạo Notification
         Notification notification = new Notification();
-        notification.setCustomer(customerRepository.findById(userId).orElseThrow());
+        notification.setCustomer(customer);
         notification.setMessage(message);
         notification.setTimestamp(LocalDateTime.now());
         notification.setAuction(auction);
@@ -75,9 +75,10 @@ public class NotificationService {
 
     /**
      * Gửi thông báo đặt giá (bid) cho tất cả người tham gia và người bán.
+     * Phương thức mới nhận vào 2 thông điệp riêng: sellerMessage và participantMessage.
      */
-    public void sendBidNotification(Integer auctionId, Integer bidderId, String message) {
-        logger.info("sendBidNotification() - auctionId: {}, bidderId: {}, message: {}", auctionId, bidderId, message);
+    public void sendBidNotification(Integer auctionId, Integer bidderId, String sellerMessage, String participantMessage) {
+        logger.info("sendBidNotification() - auctionId: {}, bidderId: {}", auctionId, bidderId);
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> {
                     logger.error("Auction with ID {} not found!", auctionId);
@@ -85,17 +86,10 @@ public class NotificationService {
                 });
         logger.debug("Found auction with ID: {}", auctionId);
 
-        // Tạo chuỗi chứa thông tin phiên đấu giá và tên sản phẩm
+        // Xây dựng thông tin phiên đấu giá
         String auctionInfo = String.format("Phiên đấu giá #%d - Sản phẩm: %s",
                 auction.getAuctionId(),
                 auction.getProduct().getName());
-
-        Customer bidder = customerRepository.findById(bidderId)
-                .orElseThrow(() -> {
-                    logger.error("Bidder with ID {} not found!", bidderId);
-                    return new RuntimeException("Bidder not found");
-                });
-        logger.debug("Found bidder with username: {}", bidder.getAccount().getUsername());
 
         // Lấy người bán (seller)
         Customer seller = getAuctionSeller(auction);
@@ -107,24 +101,19 @@ public class NotificationService {
         logger.debug("Found {} participants for auction ID {}", participants.size(), auctionId);
 
         // Gửi thông báo cho những người tham gia (trừ bidder hiện tại)
-        // Ở đây, "message" là nội dung tùy chỉnh, bạn có thể sửa thành chuỗi khác.
-        // Hoặc gộp "auctionInfo" với "message" để tạo thành một câu hoàn chỉnh
-        String bidMessage = String.format("%s - %s", auctionInfo, message);
+        String participantFullMessage = auctionInfo + " - " + participantMessage;
         for (Customer participant : participants) {
             if (!participant.getCustomerId().equals(bidderId)) {
-                sendNotification(participant.getCustomerId(), bidMessage, auction);
+                sendNotification(participant.getCustomerId(), participantFullMessage, auction);
             }
         }
 
         // Gửi thông báo cho người bán (nếu người bán không phải chính bidder)
         if (!seller.getCustomerId().equals(bidderId)) {
-            String sellerMessage = String.format(
-                    "%s - Có người vừa đặt giá thành công cho sản phẩm của bạn! " ,
-                    auction.getAuctionId(), auction.getProduct().getName());
-            sendNotification(seller.getCustomerId(), sellerMessage, auction);
+            String sellerFullMessage = auctionInfo + " - " + sellerMessage;
+            sendNotification(seller.getCustomerId(), sellerFullMessage, auction);
         }
     }
-
 
     /**
      * Lấy người bán của một phiên đấu giá.
